@@ -5,8 +5,9 @@ use crate::streaming::common::{
 use crate::streaming::event_parser::common::filter::EventTypeFilter;
 use crate::streaming::event_parser::{Protocol, UnifiedEvent};
 use crate::streaming::grpc::{
-    AccountPretty, BlockMetaPretty, EventPretty, SubscriptionManager, TransactionPretty,
+    EventPretty, SubscriptionManager,
 };
+use crate::streaming::grpc::pool::factory;
 use anyhow::anyhow;
 use chrono::Local;
 use futures::channel::mpsc;
@@ -224,7 +225,7 @@ impl YellowstoneGrpc {
                                 let created_at = msg.created_at;
                                 match msg.update_oneof {
                                     Some(UpdateOneof::Account(account)) => {
-                                        let account_pretty = AccountPretty::from(account);
+                                        let account_pretty = factory::create_account_pretty_pooled(account);
                                         log::debug!("Received account: {:?}", account_pretty);
                                         if let Err(e) = event_processor
                                             .process_grpc_event_transaction_with_metrics(
@@ -237,8 +238,7 @@ impl YellowstoneGrpc {
                                         }
                                     }
                                     Some(UpdateOneof::BlockMeta(sut)) => {
-                                        let block_meta_pretty =
-                                            BlockMetaPretty::from((sut, created_at));
+                                        let block_meta_pretty = factory::create_block_meta_pretty_pooled(sut, created_at);
                                         log::debug!("Received block meta: {:?}", block_meta_pretty);
                                         if let Err(e) = event_processor
                                             .process_grpc_event_transaction_with_metrics(
@@ -251,8 +251,7 @@ impl YellowstoneGrpc {
                                         }
                                     }
                                     Some(UpdateOneof::Transaction(sut)) => {
-                                        let transaction_pretty =
-                                            TransactionPretty::from((sut, created_at));
+                                        let transaction_pretty = factory::create_transaction_pretty_pooled(sut, created_at);
                                         log::debug!(
                                             "Received transaction: {} at slot {}",
                                             transaction_pretty.signature,

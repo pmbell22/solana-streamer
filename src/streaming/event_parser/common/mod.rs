@@ -12,7 +12,7 @@ macro_rules! impl_unified_event {
                 self.metadata.event_type.clone()
             }
 
-            fn signature(&self) -> &str {
+            fn signature(&self) -> &solana_sdk::signature::Signature {
                 &self.metadata.signature
             }
 

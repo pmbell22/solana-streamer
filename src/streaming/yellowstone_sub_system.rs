@@ -1,9 +1,6 @@
 use crate::{
     common::AnyResult,
-    streaming::{
-        grpc::{EventPretty, TransactionPretty},
-        yellowstone_grpc::YellowstoneGrpc,
-    },
+    streaming::{grpc::pool::factory, grpc::EventPretty, yellowstone_grpc::YellowstoneGrpc},
 };
 use futures::{SinkExt, StreamExt};
 use log::error;
@@ -62,13 +59,11 @@ impl YellowstoneGrpc {
                         let created_at = msg.created_at;
                         match msg.update_oneof {
                             Some(UpdateOneof::Transaction(sut)) => {
-                                let transaction_pretty = TransactionPretty::from((sut, created_at));
+                                let transaction_pretty =
+                                    factory::create_transaction_pretty_pooled(sut, created_at);
                                 let event_pretty = EventPretty::Transaction(transaction_pretty);
-                                if let Err(e) = Self::process_system_transaction(
-                                    event_pretty,
-                                    &*callback,
-                                )
-                                .await
+                                if let Err(e) =
+                                    Self::process_system_transaction(event_pretty, &*callback).await
                                 {
                                     error!("Error processing transaction: {e:?}");
                                 }

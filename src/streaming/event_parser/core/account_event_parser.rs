@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
@@ -7,7 +6,7 @@ use solana_sdk::pubkey::Pubkey;
 use crate::streaming::common::SimdUtils;
 use crate::streaming::event_parser::common::filter::EventTypeFilter;
 use crate::streaming::event_parser::common::{EventMetadata, EventType, ProtocolType};
-use crate::streaming::event_parser::core::traits::{UnifiedEvent, get_high_perf_clock};
+use crate::streaming::event_parser::core::traits::{elapsed_micros_since, UnifiedEvent};
 use crate::streaming::event_parser::protocols::bonk::parser::BONK_PROGRAM_ID;
 use crate::streaming::event_parser::protocols::pumpfun::parser::PUMPFUN_PROGRAM_ID;
 use crate::streaming::event_parser::protocols::pumpswap::parser::PUMPSWAP_PROGRAM_ID;
@@ -177,12 +176,11 @@ impl AccountEventParser {
             if account.owner == config.program_id
                 && SimdUtils::fast_discriminator_match(&account.data, config.account_discriminator)
             {
-                let signature_str = Cow::Owned(account.signature.to_string());
                 let event = (config.account_parser)(
                     &account,
                     EventMetadata {
                         slot: account.slot,
-                        signature: signature_str,
+                        signature: account.signature,
                         protocol: config.protocol_type,
                         event_type: config.event_type,
                         program_id: config.program_id,
@@ -191,9 +189,9 @@ impl AccountEventParser {
                     },
                 );
                 if let Some(mut event) = event {
-                    event.set_program_handle_time_consuming_us(
-                        get_high_perf_clock().elapsed_micros_since(account.program_received_time_us),
-                    );
+                    event.set_program_handle_time_consuming_us(elapsed_micros_since(
+                        account.program_received_time_us,
+                    ));
                     return Some(event);
                 }
             }

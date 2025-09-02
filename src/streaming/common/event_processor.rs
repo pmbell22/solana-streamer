@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
-use std::time::Instant;
+
 
 use crossbeam_queue::SegQueue;
 use solana_sdk::pubkey::Pubkey;
@@ -13,7 +13,7 @@ use crate::streaming::common::{
 use crate::streaming::event_parser::common::filter::EventTypeFilter;
 use crate::streaming::event_parser::core::account_event_parser::AccountEventParser;
 use crate::streaming::event_parser::core::common_event_parser::CommonEventParser;
-use crate::streaming::event_parser::core::traits::get_high_perf_clock;
+
 use crate::streaming::event_parser::EventParser;
 use crate::streaming::event_parser::{
     core::traits::UnifiedEvent, protocols::mutil::parser::MutilEventParser, Protocol,
@@ -225,7 +225,7 @@ impl EventProcessor {
                     .unwrap_or_else(|| chrono::Utc::now().timestamp_millis());
                 let block_meta_event = CommonEventParser::generate_block_meta_event(
                     block_meta_pretty.slot,
-                    &block_meta_pretty.block_hash,
+                    block_meta_pretty.block_hash,
                     block_time_ms,
                     block_meta_pretty.program_received_time_us,
                 );

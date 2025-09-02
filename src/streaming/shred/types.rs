@@ -1,7 +1,7 @@
 use solana_sdk::transaction::VersionedTransaction;
 
 /// 携带槽位信息的交易
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TransactionWithSlot {
     pub transaction: VersionedTransaction,
     pub slot: u64,

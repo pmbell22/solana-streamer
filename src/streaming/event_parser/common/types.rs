@@ -1,7 +1,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use crossbeam_queue::ArrayQueue;
 use serde::{Deserialize, Serialize};
-use solana_sdk::pubkey::Pubkey;
+use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use std::{borrow::Cow, fmt, str::FromStr, sync::Arc};
 
 use crate::{
@@ -282,15 +282,13 @@ pub struct SwapData {
     pub to_mint: Pubkey,
     pub from_amount: u64,
     pub to_amount: u64,
-    pub description: Option<String>,
+    pub description: Option<Cow<'static, str>>,
 }
 
 /// Event metadata
-#[derive(
-    Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, BorshSerialize, BorshDeserialize,
-)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EventMetadata {
-    pub signature: Cow<'static, str>,
+    pub signature: Signature,
     pub slot: u64,
     pub transaction_index: Option<u64>, // 新增：交易在slot中的索引
     pub block_time: i64,
@@ -308,7 +306,7 @@ pub struct EventMetadata {
 impl EventMetadata {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        signature: Cow<'static, str>,
+        signature: Signature,
         slot: u64,
         block_time: i64,
         block_time_ms: i64,
@@ -413,7 +411,7 @@ pub fn parse_swap_data_from_next_instructions(
         },
         RaydiumClmmSwapEvent => |e: RaydiumClmmSwapEvent| {
             user = Some(e.payer);
-            swap_data.description = Some("Unable to get from_mint and to_mint from RaydiumClmmSwapEvent".to_string());
+            swap_data.description = Some("Unable to get from_mint and to_mint from RaydiumClmmSwapEvent".into());
             user_from_token = Some(e.input_token_account);
             user_to_token   = Some(e.output_token_account);
             from_vault = Some(e.input_vault);
@@ -430,7 +428,7 @@ pub fn parse_swap_data_from_next_instructions(
         },
         RaydiumAmmV4SwapEvent => |e: RaydiumAmmV4SwapEvent| {
             user = Some(e.user_source_owner);
-            swap_data.description = Some("Unable to get from_mint and to_mint from RaydiumAmmV4SwapEvent".to_string());
+            swap_data.description = Some("Unable to get from_mint and to_mint from RaydiumAmmV4SwapEvent".into());
             user_from_token = Some(e.user_source_token_account);
             user_to_token   = Some(e.user_destination_token_account);
             from_vault = Some(e.pool_pc_token_account);
@@ -453,12 +451,12 @@ pub fn parse_swap_data_from_next_instructions(
             break;
         }
         let data = &compiled.data;
-        
+
         // 使用 SIMD 验证数据格式
         if !SimdUtils::validate_data_format(data, 8) {
             continue;
         }
-        
+
         let get_pubkey = |i: usize| accounts[compiled.accounts[i] as usize];
         let (source, destination, amount) = match data[0] {
             12 if compiled.accounts.len() >= 4 => {

@@ -18,7 +18,7 @@ impl BlockMetaEvent {
         slot: u64,
         block_hash: String,
         block_time_ms: i64,
-        program_received_time_us: i64,
+        recv_us: i64,
     ) -> Self {
         let metadata = EventMetadata::new(
             Signature::default(),
@@ -30,7 +30,7 @@ impl BlockMetaEvent {
             solana_sdk::pubkey::Pubkey::default(),
             0,
             None,
-            program_received_time_us,
+            recv_us,
             None,
         );
         Self { metadata, slot, block_hash }

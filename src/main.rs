@@ -196,7 +196,7 @@ fn create_event_callback() -> impl Fn(Box<dyn UnifiedEvent>) {
         match_event!(event, {
             // -------------------------- block meta -----------------------
             BlockMetaEvent => |e: BlockMetaEvent| {
-                println!("BlockMetaEvent: {:?}", e.metadata.program_handle_time_consuming_us);
+                println!("BlockMetaEvent: {:?}", e.metadata.handle_us);
             },
             // -------------------------- bonk -----------------------
             BonkPoolCreateEvent => |e: BonkPoolCreateEvent| {

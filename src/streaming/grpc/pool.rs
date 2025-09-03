@@ -118,7 +118,7 @@ impl PooledAccountPretty {
             self.account.data = new_data;
         }
 
-        self.account.program_received_time_us = get_high_perf_clock();
+        self.account.recv_us = get_high_perf_clock();
     }
 }
 
@@ -196,7 +196,7 @@ impl PooledBlockMetaPretty {
         self.block_meta.slot = block_update.slot;
         self.block_meta.block_hash = block_update.blockhash;
         self.block_meta.block_time = block_time;
-        self.block_meta.program_received_time_us = get_high_perf_clock();
+        self.block_meta.recv_us = get_high_perf_clock();
     }
 }
 
@@ -282,7 +282,7 @@ impl PooledTransactionPretty {
         self.transaction.signature =
             Signature::try_from(tx.signature.as_slice()).expect("valid signature");
         self.transaction.is_vote = tx.is_vote;
-        self.transaction.program_received_time_us = get_high_perf_clock();
+        self.transaction.recv_us = get_high_perf_clock();
         self.transaction.grpc_tx = tx;
     }
 }

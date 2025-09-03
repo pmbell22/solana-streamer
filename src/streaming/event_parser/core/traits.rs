@@ -236,13 +236,13 @@ pub trait UnifiedEvent: Debug + Send + Sync {
     fn slot(&self) -> u64;
 
     /// Get program received timestamp (milliseconds)
-    fn program_received_time_us(&self) -> i64;
+    fn recv_us(&self) -> i64;
 
     /// Processing time consumption (milliseconds)
-    fn program_handle_time_consuming_us(&self) -> i64;
+    fn handle_us(&self) -> i64;
 
     /// Set processing time consumption (milliseconds)
-    fn set_program_handle_time_consuming_us(&mut self, program_handle_time_consuming_us: i64);
+    fn set_handle_us(&mut self, handle_us: i64);
 
     /// Convert event to Any for downcasting
     fn as_any(&self) -> &dyn std::any::Any;
@@ -265,8 +265,8 @@ pub trait UnifiedEvent: Debug + Send + Sync {
     fn swap_data_is_parsed(&self) -> bool;
 
     /// Get index
-    fn instruction_outer_index(&self) -> i64;
-    fn instruction_inner_index(&self) -> Option<i64>;
+    fn outer_index(&self) -> i64;
+    fn inner_index(&self) -> Option<i64>;
 
     /// Get transaction index in slot
     fn transaction_index(&self) -> Option<u64>;
@@ -285,7 +285,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: u64,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         transaction_index: Option<u64>,
@@ -300,7 +300,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: u64,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         transaction_index: Option<u64>,
@@ -316,7 +316,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: u64,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         bot_wallet: Option<Pubkey>,
@@ -335,7 +335,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: u64,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         bot_wallet: Option<Pubkey>,
@@ -351,7 +351,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: Option<u64>,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         accounts: &[Pubkey],
         inner_instructions: &[yellowstone_grpc_proto::prelude::InnerInstructions],
         bot_wallet: Option<Pubkey>,
@@ -383,7 +383,7 @@ pub trait EventParser: Send + Sync {
                             signature,
                             slot,
                             block_time,
-                            program_received_time_us,
+                            recv_us,
                             index as i64,
                             None,
                             bot_wallet,
@@ -407,7 +407,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: Option<u64>,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         accounts: &[Pubkey],
         inner_instructions: &[InnerInstructions],
         bot_wallet: Option<Pubkey>,
@@ -440,7 +440,7 @@ pub trait EventParser: Send + Sync {
                             signature,
                             slot,
                             block_time,
-                            program_received_time_us,
+                            recv_us,
                             index as i64,
                             None,
                             bot_wallet,
@@ -462,7 +462,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: Option<u64>,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         bot_wallet: Option<Pubkey>,
         transaction_index: Option<u64>,
         inner_instructions: &[InnerInstructions],
@@ -477,7 +477,7 @@ pub trait EventParser: Send + Sync {
             signature,
             slot,
             block_time,
-            program_received_time_us,
+            recv_us,
             bot_wallet,
             transaction_index,
             inner_instructions,
@@ -493,7 +493,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: Option<u64>,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         bot_wallet: Option<Pubkey>,
         transaction_index: Option<u64>,
         inner_instructions: &[InnerInstructions],
@@ -505,7 +505,7 @@ pub trait EventParser: Send + Sync {
             signature,
             slot,
             block_time,
-            program_received_time_us,
+            recv_us,
             &accounts,
             inner_instructions,
             bot_wallet,
@@ -522,7 +522,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: Option<u64>,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         bot_wallet: Option<Pubkey>,
         transaction_index: Option<u64>,
         callback: Arc<dyn Fn(Box<dyn UnifiedEvent>) + Send + Sync>,
@@ -537,7 +537,7 @@ pub trait EventParser: Send + Sync {
             signature,
             slot,
             block_time,
-            program_received_time_us,
+            recv_us,
             bot_wallet,
             transaction_index,
             adapter_callback,
@@ -551,7 +551,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: Option<u64>,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         bot_wallet: Option<Pubkey>,
         transaction_index: Option<u64>,
         callback: Arc<dyn for<'a> Fn(&'a Box<dyn UnifiedEvent>) + Send + Sync>,
@@ -600,7 +600,7 @@ pub trait EventParser: Send + Sync {
                     signature,
                     slot,
                     block_time,
-                    program_received_time_us,
+                    recv_us,
                     &accounts_arc,
                     &inner_instructions_arc,
                     bot_wallet,
@@ -625,7 +625,7 @@ pub trait EventParser: Send + Sync {
                             signature,
                             slot,
                             block_time,
-                            program_received_time_us,
+                            recv_us,
                             inner_instruction.index as i64,
                             Some(index as i64),
                             bot_wallet,
@@ -732,7 +732,7 @@ pub trait EventParser: Send + Sync {
 
         let slot = transaction.slot;
         let block_time = transaction.block_time.map(|t| Timestamp { seconds: t as i64, nanos: 0 });
-        let program_received_time_us = get_high_perf_clock();
+        let recv_us = get_high_perf_clock();
         let bot_wallet = None;
         let transaction_index = None;
         // 解析指令事件
@@ -741,7 +741,7 @@ pub trait EventParser: Send + Sync {
             signature,
             Some(slot),
             block_time,
-            program_received_time_us,
+            recv_us,
             &accounts_arc,
             &inner_instructions_arc,
             bot_wallet,
@@ -759,7 +759,7 @@ pub trait EventParser: Send + Sync {
                     signature,
                     Some(slot),
                     block_time,
-                    program_received_time_us,
+                    recv_us,
                     inner_instruction.index as i64,
                     Some(index as i64),
                     bot_wallet,
@@ -780,7 +780,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: Option<u64>,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         transaction_index: Option<u64>,
@@ -792,7 +792,7 @@ pub trait EventParser: Send + Sync {
             signature,
             slot,
             block_time,
-            program_received_time_us,
+            recv_us,
             outer_index,
             inner_index,
             transaction_index,
@@ -809,7 +809,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: Option<u64>,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         bot_wallet: Option<Pubkey>,
@@ -824,7 +824,7 @@ pub trait EventParser: Send + Sync {
             signature,
             slot,
             block_time,
-            program_received_time_us,
+            recv_us,
             outer_index,
             inner_index,
             bot_wallet,
@@ -842,7 +842,7 @@ pub trait EventParser: Send + Sync {
         signature: Signature,
         slot: Option<u64>,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         bot_wallet: Option<Pubkey>,
@@ -857,7 +857,7 @@ pub trait EventParser: Send + Sync {
             signature,
             slot,
             block_time,
-            program_received_time_us,
+            recv_us,
             outer_index,
             inner_index,
             bot_wallet,
@@ -938,7 +938,7 @@ impl GenericEventParser {
         signature: Signature,
         slot: u64,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         transaction_index: Option<u64>,
@@ -956,7 +956,7 @@ impl GenericEventParser {
                 config.program_id,
                 outer_index,
                 inner_index,
-                program_received_time_us,
+                recv_us,
                 transaction_index,
             );
             parser(data, metadata)
@@ -975,7 +975,7 @@ impl GenericEventParser {
         signature: Signature,
         slot: u64,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         transaction_index: Option<u64>,
@@ -993,7 +993,7 @@ impl GenericEventParser {
                 config.program_id,
                 outer_index,
                 inner_index,
-                program_received_time_us,
+                recv_us,
                 transaction_index,
             );
             parser(data, account_pubkeys, metadata)
@@ -1016,7 +1016,7 @@ impl EventParser for GenericEventParser {
         signature: Signature,
         slot: u64,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         transaction_index: Option<u64>,
@@ -1034,7 +1034,7 @@ impl EventParser for GenericEventParser {
             signature,
             slot,
             block_time,
-            program_received_time_us,
+            recv_us,
             outer_index,
             inner_index,
             transaction_index,
@@ -1052,7 +1052,7 @@ impl EventParser for GenericEventParser {
         signature: Signature,
         slot: u64,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         transaction_index: Option<u64>,
@@ -1070,7 +1070,7 @@ impl EventParser for GenericEventParser {
             signature,
             slot,
             block_time,
-            program_received_time_us,
+            recv_us,
             outer_index,
             inner_index,
             transaction_index,
@@ -1089,7 +1089,7 @@ impl EventParser for GenericEventParser {
         signature: Signature,
         slot: u64,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         bot_wallet: Option<Pubkey>,
@@ -1141,7 +1141,7 @@ impl EventParser for GenericEventParser {
                     signature,
                     slot,
                     block_time,
-                    program_received_time_us,
+                    recv_us,
                     outer_index,
                     inner_index,
                     transaction_index,
@@ -1165,7 +1165,7 @@ impl EventParser for GenericEventParser {
                                 signature,
                                 slot,
                                 block_time,
-                                program_received_time_us,
+                                recv_us,
                                 outer_index,
                                 inner_index,
                                 transaction_index,
@@ -1205,8 +1205,8 @@ impl EventParser for GenericEventParser {
                 event.merge(&*inner_instruction_event);
             }
             // 设置处理时间（使用高性能时钟）
-            event.set_program_handle_time_consuming_us(elapsed_micros_since(
-                program_received_time_us,
+            event.set_handle_us(elapsed_micros_since(
+                recv_us,
             ));
             event = process_event(event, bot_wallet);
             callback(&event);
@@ -1224,7 +1224,7 @@ impl EventParser for GenericEventParser {
         signature: Signature,
         slot: u64,
         block_time: Option<Timestamp>,
-        program_received_time_us: i64,
+        recv_us: i64,
         outer_index: i64,
         inner_index: Option<i64>,
         bot_wallet: Option<Pubkey>,
@@ -1276,7 +1276,7 @@ impl EventParser for GenericEventParser {
                     signature,
                     slot,
                     block_time,
-                    program_received_time_us,
+                    recv_us,
                     outer_index,
                     inner_index,
                     transaction_index,
@@ -1300,7 +1300,7 @@ impl EventParser for GenericEventParser {
                                 signature,
                                 slot,
                                 block_time,
-                                program_received_time_us,
+                                recv_us,
                                 outer_index,
                                 inner_index,
                                 transaction_index,
@@ -1340,8 +1340,8 @@ impl EventParser for GenericEventParser {
                 event.merge(&*inner_instruction_event);
             }
             // 设置处理时间（使用高性能时钟）
-            event.set_program_handle_time_consuming_us(elapsed_micros_since(
-                program_received_time_us,
+            event.set_handle_us(elapsed_micros_since(
+                recv_us,
             ));
             event = process_event(event, bot_wallet);
             callback(&event);

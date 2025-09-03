@@ -94,7 +94,7 @@ impl EventProcessor {
         let metrics_manager = self.metrics_manager.clone();
 
         Arc::new(move |event: Box<dyn UnifiedEvent>| {
-            let processing_time_us = event.program_handle_time_consuming_us() as f64;
+            let processing_time_us = event.handle_us() as f64;
             callback(event);
             metrics_manager.update_metrics(MetricsEventType::Transaction, 1, processing_time_us);
         })
@@ -171,7 +171,7 @@ impl EventProcessor {
                     self.event_type_filter.as_ref(),
                 );
                 if let Some(event) = account_event {
-                    let processing_time_us = event.program_handle_time_consuming_us() as f64;
+                    let processing_time_us = event.handle_us() as f64;
                     self.invoke_callback(event);
                     self.update_metrics(MetricsEventType::Account, 1, processing_time_us);
                 }
@@ -181,7 +181,7 @@ impl EventProcessor {
                 let slot = transaction_pretty.slot;
                 let signature = transaction_pretty.signature;
                 let block_time = transaction_pretty.block_time;
-                let program_received_time_us = transaction_pretty.program_received_time_us;
+                let recv_us = transaction_pretty.recv_us;
                 let transaction_index = transaction_pretty.transaction_index;
                 let grpc_tx = transaction_pretty.grpc_tx;
 
@@ -193,7 +193,7 @@ impl EventProcessor {
                         signature,
                         Some(slot),
                         block_time,
-                        program_received_time_us,
+                        recv_us,
                         bot_wallet,
                         transaction_index,
                         adapter_callback,
@@ -210,9 +210,9 @@ impl EventProcessor {
                     block_meta_pretty.slot,
                     block_meta_pretty.block_hash,
                     block_time_ms,
-                    block_meta_pretty.program_received_time_us,
+                    block_meta_pretty.recv_us,
                 );
-                let processing_time_us = block_meta_event.program_handle_time_consuming_us() as f64;
+                let processing_time_us = block_meta_event.handle_us() as f64;
                 self.invoke_callback(block_meta_event);
                 self.update_metrics(MetricsEventType::BlockMeta, 1, processing_time_us);
             }
@@ -302,7 +302,7 @@ impl EventProcessor {
 
         let slot = transaction_with_slot.slot;
         let signature = tx.signatures[0];
-        let program_received_time_us = transaction_with_slot.program_received_time_us;
+        let recv_us = transaction_with_slot.recv_us;
 
         let parser = self.get_parser();
         let adapter_callback = self.create_adapter_callback();
@@ -312,7 +312,7 @@ impl EventProcessor {
                 signature,
                 Some(slot),
                 None,
-                program_received_time_us,
+                recv_us,
                 bot_wallet,
                 None,
                 &[],

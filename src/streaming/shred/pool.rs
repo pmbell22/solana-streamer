@@ -52,11 +52,11 @@ impl PooledTransactionWithSlot {
         &mut self, 
         transaction: VersionedTransaction, 
         slot: u64, 
-        program_received_time_us: i64
+        recv_us: i64
     ) {
         self.transaction.transaction = transaction;
         self.transaction.slot = slot;
-        self.transaction.program_received_time_us = program_received_time_us;
+        self.transaction.recv_us = recv_us;
     }
 
     /// 使用优化的工厂方法创建 TransactionWithSlot（移动数据而不是克隆）
@@ -72,7 +72,7 @@ impl Drop for PooledTransactionWithSlot {
         if pool.len() < self.max_size {
             // 清理敏感数据
             self.transaction.slot = 0;
-            self.transaction.program_received_time_us = 0;
+            self.transaction.recv_us = 0;
             // 重置交易为默认值以清理敏感数据
             self.transaction.transaction = VersionedTransaction::default();
             pool.push_back(std::mem::take(&mut self.transaction));
@@ -118,10 +118,10 @@ impl ShredPoolManager {
         &self,
         transaction: VersionedTransaction,
         slot: u64,
-        program_received_time_us: i64,
+        recv_us: i64,
     ) -> TransactionWithSlot {
         let mut pooled_tx = self.transaction_pool.acquire();
-        pooled_tx.reset_from_data(transaction, slot, program_received_time_us);
+        pooled_tx.reset_from_data(transaction, slot, recv_us);
         pooled_tx.into_transaction_with_slot()
     }
 }
@@ -145,12 +145,12 @@ pub mod factory {
     pub fn create_transaction_with_slot_pooled(
         transaction: VersionedTransaction,
         slot: u64,
-        program_received_time_us: i64,
+        recv_us: i64,
     ) -> TransactionWithSlot {
         GLOBAL_SHRED_POOL_MANAGER.create_transaction_with_slot_optimized(
             transaction, 
             slot, 
-            program_received_time_us
+            recv_us
         )
     }
 }

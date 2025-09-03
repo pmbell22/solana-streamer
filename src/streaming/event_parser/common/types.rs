@@ -293,14 +293,14 @@ pub struct EventMetadata {
     pub transaction_index: Option<u64>, // 新增：交易在slot中的索引
     pub block_time: i64,
     pub block_time_ms: i64,
-    pub program_received_time_us: i64,
-    pub program_handle_time_consuming_us: i64,
+    pub recv_us: i64,
+    pub handle_us: i64,
     pub protocol: ProtocolType,
     pub event_type: EventType,
     pub program_id: Pubkey,
     pub swap_data: Option<SwapData>,
-    pub instruction_outer_index: i64,
-    pub instruction_inner_index: Option<i64>,
+    pub outer_index: i64,
+    pub inner_index: Option<i64>,
 }
 
 impl EventMetadata {
@@ -313,9 +313,9 @@ impl EventMetadata {
         protocol: ProtocolType,
         event_type: EventType,
         program_id: Pubkey,
-        instruction_outer_index: i64,
-        instruction_inner_index: Option<i64>,
-        program_received_time_us: i64,
+        outer_index: i64,
+        inner_index: Option<i64>,
+        recv_us: i64,
         transaction_index: Option<u64>,
     ) -> Self {
         Self {
@@ -323,14 +323,14 @@ impl EventMetadata {
             slot,
             block_time,
             block_time_ms,
-            program_received_time_us,
-            program_handle_time_consuming_us: 0,
+            recv_us,
+            handle_us: 0,
             protocol,
             event_type,
             program_id,
             swap_data: None,
-            instruction_outer_index,
-            instruction_inner_index,
+            outer_index,
+            inner_index,
             transaction_index,
         }
     }

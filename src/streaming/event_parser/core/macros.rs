@@ -30,7 +30,7 @@ macro_rules! impl_event_parser_delegate {
                 signature: solana_sdk::signature::Signature,
                 slot: u64,
                 block_time: Option<prost_types::Timestamp>,
-                program_received_time_us: i64,
+                recv_us: i64,
                 outer_index: i64,
                 inner_index: Option<i64>,
                 transaction_index: Option<u64>,
@@ -41,7 +41,7 @@ macro_rules! impl_event_parser_delegate {
                     signature,
                     slot,
                     block_time,
-                    program_received_time_us,
+                    recv_us,
                     outer_index,
                     inner_index,
                     transaction_index,
@@ -55,13 +55,13 @@ macro_rules! impl_event_parser_delegate {
                 signature: solana_sdk::signature::Signature,
                 slot: u64,
                 block_time: Option<prost_types::Timestamp>,
-                program_received_time_us: i64,
+                recv_us: i64,
                 outer_index: i64,
                 inner_index: Option<i64>,
                 transaction_index: Option<u64>,
                 config: &GenericEventParseConfig,
             ) -> Vec<Box<dyn $crate::streaming::event_parser::core::traits::UnifiedEvent>> {
-                self.inner.parse_events_from_grpc_inner_instruction(inner_instruction, signature, slot, block_time, program_received_time_us, outer_index, inner_index, transaction_index, config)
+                self.inner.parse_events_from_grpc_inner_instruction(inner_instruction, signature, slot, block_time, recv_us, outer_index, inner_index, transaction_index, config)
             }
 
             fn parse_events_from_instruction(
@@ -71,7 +71,7 @@ macro_rules! impl_event_parser_delegate {
                 signature: solana_sdk::signature::Signature,
                 slot: u64,
                 block_time: Option<prost_types::Timestamp>,
-                program_received_time_us: i64,
+                recv_us: i64,
                 outer_index: i64,
                 inner_index: Option<i64>,
                 bot_wallet: Option<solana_sdk::pubkey::Pubkey>,
@@ -89,7 +89,7 @@ macro_rules! impl_event_parser_delegate {
                     signature,
                     slot,
                     block_time,
-                    program_received_time_us,
+                    recv_us,
                     outer_index,
                     inner_index,
                     bot_wallet,
@@ -106,7 +106,7 @@ macro_rules! impl_event_parser_delegate {
                 signature: solana_sdk::signature::Signature,
                 slot: u64,
                 block_time: Option<prost_types::Timestamp>,
-                program_received_time_us: i64,
+                recv_us: i64,
                 outer_index: i64,
                 inner_index: Option<i64>,
                 bot_wallet: Option<solana_sdk::pubkey::Pubkey>,
@@ -118,7 +118,7 @@ macro_rules! impl_event_parser_delegate {
                         + Sync,
                 >,
             ) -> anyhow::Result<()> {
-                self.inner.parse_events_from_grpc_instruction(instruction, accounts, signature, slot, block_time, program_received_time_us, outer_index, inner_index, bot_wallet, transaction_index, inner_instructions, callback)
+                self.inner.parse_events_from_grpc_instruction(instruction, accounts, signature, slot, block_time, recv_us, outer_index, inner_index, bot_wallet, transaction_index, inner_instructions, callback)
             }
 
             fn should_handle(&self, program_id: &solana_sdk::pubkey::Pubkey) -> bool {

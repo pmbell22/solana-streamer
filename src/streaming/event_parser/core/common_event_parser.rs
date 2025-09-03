@@ -8,12 +8,12 @@ impl CommonEventParser {
         slot: u64,
         block_hash: String,
         block_time_ms: i64,
-        program_received_time_us: i64,
+        recv_us: i64,
     ) -> Box<dyn UnifiedEvent> {
         let mut block_meta_event =
-            BlockMetaEvent::new(slot, block_hash, block_time_ms, program_received_time_us);
+            BlockMetaEvent::new(slot, block_hash, block_time_ms, recv_us);
         block_meta_event
-            .set_program_handle_time_consuming_us(elapsed_micros_since(program_received_time_us));
+            .set_handle_us(elapsed_micros_since(recv_us));
         Box::new(block_meta_event)
     }
 }

@@ -184,13 +184,13 @@ impl AccountEventParser {
                         protocol: config.protocol_type,
                         event_type: config.event_type,
                         program_id: config.program_id,
-                        program_received_time_us: account.program_received_time_us,
+                        recv_us: account.recv_us,
                         ..Default::default()
                     },
                 );
                 if let Some(mut event) = event {
-                    event.set_program_handle_time_consuming_us(elapsed_micros_since(
-                        account.program_received_time_us,
+                    event.set_handle_us(elapsed_micros_since(
+                        account.recv_us,
                     ));
                     return Some(event);
                 }

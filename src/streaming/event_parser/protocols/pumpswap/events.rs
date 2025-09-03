@@ -366,11 +366,12 @@ impl_unified_event!(
 /// 全局配置
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize)]
 pub struct PumpSwapGlobalConfigAccountEvent {
+    #[borsh(skip)]
     pub metadata: EventMetadata,
-    pub pubkey: String,
+    pub pubkey: Pubkey,
     pub executable: bool,
     pub lamports: u64,
-    pub owner: String,
+    pub owner: Pubkey,
     pub rent_epoch: u64,
     pub global_config: GlobalConfig,
 }
@@ -379,11 +380,12 @@ impl_unified_event!(PumpSwapGlobalConfigAccountEvent,);
 /// 池
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize)]
 pub struct PumpSwapPoolAccountEvent {
+    #[borsh(skip)]
     pub metadata: EventMetadata,
-    pub pubkey: String,
+    pub pubkey: Pubkey,
     pub executable: bool,
     pub lamports: u64,
-    pub owner: String,
+    pub owner: Pubkey,
     pub rent_epoch: u64,
     pub pool: Pool,
 }

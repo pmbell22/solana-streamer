@@ -26,7 +26,7 @@ pub struct BackpressureConfig {
 
 impl Default for BackpressureConfig {
     fn default() -> Self {
-        Self { permits: 1, strategy: BackpressureStrategy::default() }
+        Self { permits: 3000, strategy: BackpressureStrategy::default() }
     }
 }
 

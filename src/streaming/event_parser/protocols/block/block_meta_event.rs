@@ -1,9 +1,8 @@
-use std::borrow::Cow;
-
 use crate::impl_unified_event;
 use crate::streaming::event_parser::common::{types::EventType, EventMetadata};
 use borsh::BorshDeserialize;
 use serde::{Deserialize, Serialize};
+use solana_sdk::signature::Signature;
 
 /// Block元数据事件
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize)]
@@ -19,10 +18,10 @@ impl BlockMetaEvent {
         slot: u64,
         block_hash: String,
         block_time_ms: i64,
-        program_received_time_us: i64,
+        recv_us: i64,
     ) -> Self {
         let metadata = EventMetadata::new(
-            Cow::Borrowed(""),
+            Signature::default(),
             slot,
             block_time_ms / 1000,
             block_time_ms,
@@ -31,7 +30,7 @@ impl BlockMetaEvent {
             solana_sdk::pubkey::Pubkey::default(),
             0,
             None,
-            program_received_time_us,
+            recv_us,
             None,
         );
         Self { metadata, slot, block_hash }

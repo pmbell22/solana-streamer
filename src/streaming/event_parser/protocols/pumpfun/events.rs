@@ -228,10 +228,10 @@ impl_unified_event!(
 pub struct PumpFunBondingCurveAccountEvent {
     #[borsh(skip)]
     pub metadata: EventMetadata,
-    pub pubkey: String,
+    pub pubkey: Pubkey,
     pub executable: bool,
     pub lamports: u64,
-    pub owner: String,
+    pub owner: Pubkey,
     pub rent_epoch: u64,
     pub bonding_curve: BondingCurve,
 }
@@ -243,10 +243,10 @@ impl_unified_event!(PumpFunBondingCurveAccountEvent,);
 pub struct PumpFunGlobalAccountEvent {
     #[borsh(skip)]
     pub metadata: EventMetadata,
-    pub pubkey: String,
+    pub pubkey: Pubkey,
     pub executable: bool,
     pub lamports: u64,
-    pub owner: String,
+    pub owner: Pubkey,
     pub rent_epoch: u64,
     pub global: Global,
 }

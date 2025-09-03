@@ -1,9 +1,6 @@
 use crate::{
     common::AnyResult,
-    streaming::{
-        grpc::{EventPretty, TransactionPretty},
-        yellowstone_grpc::YellowstoneGrpc,
-    },
+    streaming::{grpc::pool::factory, grpc::EventPretty, yellowstone_grpc::YellowstoneGrpc},
 };
 use futures::{SinkExt, StreamExt};
 use log::error;
@@ -62,13 +59,11 @@ impl YellowstoneGrpc {
                         let created_at = msg.created_at;
                         match msg.update_oneof {
                             Some(UpdateOneof::Transaction(sut)) => {
-                                let transaction_pretty = TransactionPretty::from((sut, created_at));
+                                let transaction_pretty =
+                                    factory::create_transaction_pretty_pooled(sut, created_at);
                                 let event_pretty = EventPretty::Transaction(transaction_pretty);
-                                if let Err(e) = Self::process_system_transaction(
-                                    event_pretty,
-                                    &*callback,
-                                )
-                                .await
+                                if let Err(e) =
+                                    Self::process_system_transaction(event_pretty, &*callback).await
                                 {
                                     error!("Error processing transaction: {e:?}");
                                 }
@@ -105,20 +100,22 @@ impl YellowstoneGrpc {
     {
         match event_pretty {
             EventPretty::Transaction(transaction_pretty) => {
-                let trade_raw: TransactionWithStatusMeta = transaction_pretty.tx;
-                let meta = trade_raw.get_status_meta();
-
-                if meta.is_none() {
-                    return Ok(());
+                let tx = yellowstone_grpc_proto::convert_from::create_tx_with_meta(
+                    transaction_pretty.grpc_tx,
+                );
+                if let Ok(tx) = tx {
+                    let trade_raw: TransactionWithStatusMeta = tx;
+                    let meta = trade_raw.get_status_meta();
+                    if meta.is_none() {
+                        return Ok(());
+                    }
+                    let transaction = trade_raw.get_transaction();
+                    callback(SystemEvent::NewTransfer(TransferInfo {
+                        slot: transaction_pretty.slot,
+                        signature: transaction_pretty.signature.to_string(),
+                        tx: Some(transaction),
+                    }));
                 }
-
-                let transaction = trade_raw.get_transaction();
-
-                callback(SystemEvent::NewTransfer(TransferInfo {
-                    slot: transaction_pretty.slot,
-                    signature: transaction_pretty.signature.to_string(),
-                    tx: Some(transaction),
-                }));
             }
             _ => {}
         }

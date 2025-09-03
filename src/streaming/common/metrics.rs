@@ -39,7 +39,8 @@ struct AtomicEventMetrics {
     events_processed: AtomicU64,
     events_in_window: AtomicU64,
     window_start_nanos: AtomicU64,
-    events_per_second_bits: AtomicU64, // Bit representation of f64
+    // Processing time statistics per event type
+    processing_stats: AtomicProcessingTimeStats,
 }
 
 impl AtomicEventMetrics {
@@ -49,7 +50,7 @@ impl AtomicEventMetrics {
             events_processed: AtomicU64::new(0),
             events_in_window: AtomicU64::new(0),
             window_start_nanos: AtomicU64::new(now_nanos),
-            events_per_second_bits: AtomicU64::new(0),
+            processing_stats: AtomicProcessingTimeStats::new(),
         }
     }
 
@@ -76,18 +77,6 @@ impl AtomicEventMetrics {
         )
     }
 
-    /// Atomically update events per second
-    #[inline]
-    fn update_events_per_second(&self, eps: f64) {
-        self.events_per_second_bits.store(eps.to_bits(), Ordering::Relaxed);
-    }
-
-    /// Get events per second
-    #[inline]
-    fn get_events_per_second(&self) -> f64 {
-        f64::from_bits(self.events_per_second_bits.load(Ordering::Relaxed))
-    }
-
     /// Reset window count
     #[inline]
     fn reset_window(&self, new_start_nanos: u64) {
@@ -98,6 +87,18 @@ impl AtomicEventMetrics {
     #[inline]
     fn get_window_start(&self) -> u64 {
         self.window_start_nanos.load(Ordering::Relaxed)
+    }
+
+    /// Get processing time statistics for this event type
+    #[inline]
+    fn get_processing_stats(&self) -> ProcessingTimeStats {
+        self.processing_stats.get_stats()
+    }
+
+    /// Update processing time statistics for this event type
+    #[inline]
+    fn update_processing_stats(&self, time_us: f64, event_count: u64) {
+        self.processing_stats.update(time_us, event_count);
     }
 }
 
@@ -139,7 +140,7 @@ impl AtomicProcessingTimeStats {
         // Update minimum value, check time difference and reset if over 10 seconds
         let mut current_min = self.min_time_bits.load(Ordering::Relaxed);
         let min_timestamp = self.min_time_timestamp_nanos.load(Ordering::Relaxed);
-        
+
         // Check if min value timestamp exceeds 10 seconds (10_000_000_000 nanoseconds)
         let min_time_diff_nanos = now_nanos.saturating_sub(min_timestamp);
         if min_time_diff_nanos > 10_000_000_000 {
@@ -148,7 +149,7 @@ impl AtomicProcessingTimeStats {
             self.min_time_timestamp_nanos.store(now_nanos, Ordering::Relaxed);
             current_min = f64::INFINITY.to_bits();
         }
-        
+
         // If current time is less than min value, update min value and timestamp
         while time_bits < current_min {
             match self.min_time_bits.compare_exchange_weak(
@@ -236,7 +237,7 @@ pub struct ProcessingTimeStats {
 pub struct EventMetricsSnapshot {
     pub process_count: u64,
     pub events_processed: u64,
-    pub events_per_second: f64,
+    pub processing_stats: ProcessingTimeStats,
 }
 
 /// Compatibility structure - complete performance metrics
@@ -253,9 +254,12 @@ pub struct PerformanceMetrics {
 impl PerformanceMetrics {
     /// Create default performance metrics (compatibility method)
     pub fn new() -> Self {
-        let default_metrics =
-            EventMetricsSnapshot { process_count: 0, events_processed: 0, events_per_second: 0.0 };
         let default_stats = ProcessingTimeStats { min_us: 0.0, max_us: 0.0, avg_us: 0.0 };
+        let default_metrics = EventMetricsSnapshot {
+            process_count: 0,
+            events_processed: 0,
+            processing_stats: default_stats.clone(),
+        };
 
         Self {
             uptime: std::time::Duration::ZERO,
@@ -311,9 +315,9 @@ impl HighPerformanceMetrics {
     pub fn get_event_metrics(&self, event_type: EventType) -> EventMetricsSnapshot {
         let index = event_type.as_index();
         let (process_count, events_processed, _) = self.event_metrics[index].get_counts();
-        let events_per_second = self.calculate_real_time_eps(event_type);
+        let processing_stats = self.event_metrics[index].get_processing_stats();
 
-        EventMetricsSnapshot { process_count, events_processed, events_per_second }
+        EventMetricsSnapshot { process_count, events_processed, processing_stats }
     }
 
     /// 获取处理时间统计
@@ -328,41 +332,6 @@ impl HighPerformanceMetrics {
         self.dropped_events_count.load(Ordering::Relaxed)
     }
 
-    /// 计算实时每秒事件数（非阻塞）
-    fn calculate_real_time_eps(&self, event_type: EventType) -> f64 {
-        let now_nanos =
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
-                as u64;
-
-        let index = event_type.as_index();
-        let event_metric = &self.event_metrics[index];
-
-        let window_start = event_metric.get_window_start();
-        let current_window_duration_secs =
-            (now_nanos.saturating_sub(window_start)) as f64 / 1_000_000_000.0;
-        let events_in_window = event_metric.events_in_window.load(Ordering::Relaxed);
-
-        // 优先级1: 当前窗口实时数据（≥2秒且有事件）
-        if current_window_duration_secs >= 2.0 && events_in_window > 0 {
-            return events_in_window as f64 / current_window_duration_secs;
-        }
-
-        // 优先级2: 上一个窗口的结果
-        let stored_eps = event_metric.get_events_per_second();
-        if stored_eps > 0.0 {
-            return stored_eps;
-        }
-
-        // 优先级3: 总体平均值（≥3秒运行时间）
-        let total_duration_secs = self.get_uptime_seconds();
-        let total_events = event_metric.events_processed.load(Ordering::Relaxed);
-        if total_duration_secs >= 3.0 && total_events > 0 {
-            return total_events as f64 / total_duration_secs;
-        }
-
-        0.0
-    }
-
     /// 更新窗口指标（后台任务调用）
     fn update_window_metrics(&self, event_type: EventType, window_duration_nanos: u64) {
         let now_nanos =
@@ -374,14 +343,6 @@ impl HighPerformanceMetrics {
 
         let window_start = event_metric.get_window_start();
         if now_nanos.saturating_sub(window_start) >= window_duration_nanos {
-            let events_in_window = event_metric.events_in_window.load(Ordering::Relaxed);
-            let window_duration_secs = window_duration_nanos as f64 / 1_000_000_000.0;
-
-            if window_duration_secs > 0.001 && events_in_window > 0 {
-                let eps = events_in_window as f64 / window_duration_secs;
-                event_metric.update_events_per_second(eps);
-            }
-
             event_metric.reset_window(now_nanos);
         }
     }
@@ -455,10 +416,15 @@ impl MetricsManager {
             return;
         }
 
-        // 原子更新事件计数
-        self.metrics.event_metrics[event_type.as_index()].add_events_processed(count);
+        let index = event_type.as_index();
 
-        // 原子更新处理时间统计
+        // 原子更新事件计数
+        self.metrics.event_metrics[index].add_events_processed(count);
+
+        // 原子更新该事件类型的处理时间统计
+        self.metrics.event_metrics[index].update_processing_stats(processing_time_us, count);
+
+        // 保持全局处理时间统计的兼容性
         self.metrics.processing_stats.update(processing_time_us, count);
     }
 
@@ -506,35 +472,25 @@ impl MetricsManager {
             println!("\n⚠️  Dropped Events: {}", dropped_count);
         }
 
-        // 打印事件指标表格
-        println!("┌─────────────┬──────────────┬──────────────────┬─────────────────┐");
-        println!("│ Event Type  │ Process Count│ Events Processed │ Events/Second   │");
-        println!("├─────────────┼──────────────┼──────────────────┼─────────────────┤");
+        // 打印事件指标表格（包含处理时间统计）
+        println!("┌─────────────┬──────────────┬──────────────────┬─────────────┬─────────────┬─────────────┐");
+        println!("│ Event Type  │ Process Count│ Events Processed │ Avg Time(μs)│ Min 10s(μs) │ Max 10s(μs) │");
+        println!("├─────────────┼──────────────┼──────────────────┼─────────────┼─────────────┼─────────────┤");
 
         for event_type in [EventType::Transaction, EventType::Account, EventType::BlockMeta] {
             let metrics = self.get_event_metrics(event_type);
             println!(
-                "│ {:11} │ {:12} │ {:16} │ {:13.2}   │",
+                "│ {:11} │ {:12} │ {:16} │ {:9.2}   │ {:9.2}   │ {:9.2}   │",
                 event_type.name(),
                 metrics.process_count,
                 metrics.events_processed,
-                metrics.events_per_second
+                metrics.processing_stats.avg_us,
+                metrics.processing_stats.min_us,
+                metrics.processing_stats.max_us
             );
         }
 
-        println!("└─────────────┴──────────────┴──────────────────┴─────────────────┘");
-
-        // 打印处理时间统计表格
-        let stats = self.get_processing_stats();
-        println!("\n⏱️  Processing Time Statistics");
-        println!("┌───────────────────────┬─────────────┐");
-        println!("│ Metric                │ Value (us)  │");
-        println!("├───────────────────────┼─────────────┤");
-        println!("│ Average               │ {:9.2}   │", stats.avg_us);
-        println!("│ Minimum within 10s    │ {:9.2}   │", stats.min_us);
-        println!("│ Maximum within 10s    │ {:9.2}   │", stats.max_us);
-        println!("└───────────────────────┴─────────────┘");
-
+        println!("└─────────────┴──────────────┴──────────────────┴─────────────┴─────────────┴─────────────┘");
         println!();
     }
 

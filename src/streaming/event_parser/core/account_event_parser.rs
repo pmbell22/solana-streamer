@@ -1,13 +1,16 @@
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::OnceLock;
 
+use serde::{Deserialize, Serialize};
+use solana_sdk::program_pack::Pack;
 use solana_sdk::pubkey::Pubkey;
+use spl_token::state::Account;
 
+use crate::impl_unified_event;
 use crate::streaming::common::SimdUtils;
 use crate::streaming::event_parser::common::filter::EventTypeFilter;
 use crate::streaming::event_parser::common::{EventMetadata, EventType, ProtocolType};
-use crate::streaming::event_parser::core::traits::{UnifiedEvent, get_high_perf_clock};
+use crate::streaming::event_parser::core::traits::{elapsed_micros_since, UnifiedEvent};
 use crate::streaming::event_parser::protocols::bonk::parser::BONK_PROGRAM_ID;
 use crate::streaming::event_parser::protocols::pumpfun::parser::PUMPFUN_PROGRAM_ID;
 use crate::streaming::event_parser::protocols::pumpswap::parser::PUMPSWAP_PROGRAM_ID;
@@ -27,12 +30,28 @@ pub struct AccountEventParseConfig {
     pub account_parser: AccountEventParserFn,
 }
 
+/// 通用账户事件
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CommonAccountEvent {
+    pub metadata: EventMetadata,
+    pub pubkey: Pubkey,
+    pub executable: bool,
+    pub lamports: u64,
+    pub owner: Pubkey,
+    pub rent_epoch: u64,
+    pub amount: Option<u64>,
+}
+impl_unified_event!(CommonAccountEvent,);
+
 /// 账户事件解析器
 pub type AccountEventParserFn =
     fn(account: &AccountPretty, metadata: EventMetadata) -> Option<Box<dyn UnifiedEvent>>;
 
 static PROTOCOL_CONFIGS_CACHE: OnceLock<HashMap<Protocol, Vec<AccountEventParseConfig>>> =
     OnceLock::new();
+
+// 通用账户解析配置的静态缓存
+static COMMON_CONFIG: OnceLock<AccountEventParseConfig> = OnceLock::new();
 
 pub struct AccountEventParser {}
 
@@ -149,21 +168,39 @@ impl AccountEventParser {
             map
         });
 
-        let mut configs = vec![];
-        let empty_vec = vec![];
+        let mut configs = Vec::new();
+        let empty_vec = Vec::new();
+
+        // 预估容量以减少重新分配
+        let estimated_capacity = protocols.len() * 3; // 大多数协议有2-3个配置
+        configs.reserve(estimated_capacity);
+
         for protocol in protocols {
             let protocol_configs = protocols_map.get(protocol).unwrap_or(&empty_vec);
-            let filtered_configs: Vec<AccountEventParseConfig> = protocol_configs
-                .iter()
-                .filter(|config| {
-                    event_type_filter
-                        .map(|filter| filter.include.contains(&config.event_type))
-                        .unwrap_or(true)
-                })
-                .cloned()
-                .collect();
-            configs.extend(filtered_configs);
+            // 如果没有过滤器，直接扩展所有配置
+            if event_type_filter.is_none() {
+                configs.extend(protocol_configs.iter().cloned());
+            } else {
+                // 有过滤器时才进行过滤
+                let filter = event_type_filter.unwrap();
+                configs.extend(
+                    protocol_configs
+                        .iter()
+                        .filter(|config| filter.include.contains(&config.event_type))
+                        .cloned(),
+                );
+            }
         }
+
+        let common_config = COMMON_CONFIG.get_or_init(|| AccountEventParseConfig {
+            program_id: Pubkey::default(),
+            protocol_type: ProtocolType::Common,
+            event_type: EventType::AccountCommon,
+            account_discriminator: &[],
+            account_parser: Self::parse_token_account_event,
+        });
+        configs.push(common_config.clone());
+
         configs
     }
 
@@ -174,30 +211,49 @@ impl AccountEventParser {
     ) -> Option<Box<dyn UnifiedEvent>> {
         let configs = Self::configs(protocols, event_type_filter);
         for config in configs {
-            if account.owner == config.program_id
-                && SimdUtils::fast_discriminator_match(&account.data, config.account_discriminator)
+            if config.program_id == Pubkey::default()
+                || (account.owner == config.program_id
+                    && SimdUtils::fast_discriminator_match(
+                        &account.data,
+                        config.account_discriminator,
+                    ))
             {
-                let signature_str = Cow::Owned(account.signature.to_string());
                 let event = (config.account_parser)(
                     &account,
                     EventMetadata {
                         slot: account.slot,
-                        signature: signature_str,
+                        signature: account.signature,
                         protocol: config.protocol_type,
                         event_type: config.event_type,
                         program_id: config.program_id,
-                        program_received_time_us: account.program_received_time_us,
+                        recv_us: account.recv_us,
                         ..Default::default()
                     },
                 );
                 if let Some(mut event) = event {
-                    event.set_program_handle_time_consuming_us(
-                        get_high_perf_clock().elapsed_micros_since(account.program_received_time_us),
-                    );
+                    event.set_handle_us(elapsed_micros_since(account.recv_us));
                     return Some(event);
                 }
             }
         }
         None
+    }
+
+    pub fn parse_token_account_event(
+        account: &AccountPretty,
+        metadata: EventMetadata,
+    ) -> Option<Box<dyn UnifiedEvent>> {
+        let info = Account::unpack(&account.data);
+        let mut event = CommonAccountEvent {
+            metadata,
+            pubkey: account.pubkey,
+            executable: account.executable,
+            lamports: account.lamports,
+            owner: account.owner,
+            rent_epoch: account.rent_epoch,
+            amount: if let Ok(info) = info { Some(info.amount) } else { None },
+        };
+        event.set_handle_us(elapsed_micros_since(account.recv_us));
+        return Some(Box::new(event));
     }
 }

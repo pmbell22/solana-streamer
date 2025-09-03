@@ -12,7 +12,7 @@ macro_rules! impl_unified_event {
                 self.metadata.event_type.clone()
             }
 
-            fn signature(&self) -> &str {
+            fn signature(&self) -> &solana_sdk::signature::Signature {
                 &self.metadata.signature
             }
 
@@ -20,16 +20,16 @@ macro_rules! impl_unified_event {
                 self.metadata.slot
             }
 
-            fn program_received_time_us(&self) -> i64 {
-                self.metadata.program_received_time_us
+            fn recv_us(&self) -> i64 {
+                self.metadata.recv_us
             }
 
-            fn program_handle_time_consuming_us(&self) -> i64 {
-                self.metadata.program_handle_time_consuming_us
+            fn handle_us(&self) -> i64 {
+                self.metadata.handle_us
             }
 
-            fn set_program_handle_time_consuming_us(&mut self, program_handle_time_consuming_us: i64) {
-                self.metadata.program_handle_time_consuming_us = program_handle_time_consuming_us;
+            fn set_handle_us(&mut self, handle_us: i64) {
+                self.metadata.handle_us = handle_us;
             }
 
             fn as_any(&self) -> &dyn std::any::Any {
@@ -60,12 +60,12 @@ macro_rules! impl_unified_event {
                 self.metadata.swap_data.is_some()
             }
 
-            fn instruction_outer_index(&self) -> i64 {
-                self.metadata.instruction_outer_index
+            fn outer_index(&self) -> i64 {
+                self.metadata.outer_index
             }
 
-            fn instruction_inner_index(&self) -> Option<i64> {
-                self.metadata.instruction_inner_index
+            fn inner_index(&self) -> Option<i64> {
+                self.metadata.inner_index
             }
             fn transaction_index(&self) -> Option<u64> {
                 self.metadata.transaction_index

@@ -1,11 +1,11 @@
 use solana_sdk::transaction::VersionedTransaction;
 
 /// 携带槽位信息的交易
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct TransactionWithSlot {
     pub transaction: VersionedTransaction,
     pub slot: u64,
-    pub program_received_time_us: i64,
+    pub recv_us: i64,
 }
 
 impl TransactionWithSlot {
@@ -13,8 +13,8 @@ impl TransactionWithSlot {
     pub fn new(
         transaction: VersionedTransaction,
         slot: u64,
-        program_received_time_us: i64,
+        recv_us: i64,
     ) -> Self {
-        Self { transaction, slot, program_received_time_us }
+        Self { transaction, slot, recv_us }
     }
 }

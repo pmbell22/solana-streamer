@@ -100,20 +100,22 @@ impl YellowstoneGrpc {
     {
         match event_pretty {
             EventPretty::Transaction(transaction_pretty) => {
-                let trade_raw: TransactionWithStatusMeta = transaction_pretty.tx;
-                let meta = trade_raw.get_status_meta();
-
-                if meta.is_none() {
-                    return Ok(());
+                let tx = yellowstone_grpc_proto::convert_from::create_tx_with_meta(
+                    transaction_pretty.grpc_tx,
+                );
+                if let Ok(tx) = tx {
+                    let trade_raw: TransactionWithStatusMeta = tx;
+                    let meta = trade_raw.get_status_meta();
+                    if meta.is_none() {
+                        return Ok(());
+                    }
+                    let transaction = trade_raw.get_transaction();
+                    callback(SystemEvent::NewTransfer(TransferInfo {
+                        slot: transaction_pretty.slot,
+                        signature: transaction_pretty.signature.to_string(),
+                        tx: Some(transaction),
+                    }));
                 }
-
-                let transaction = trade_raw.get_transaction();
-
-                callback(SystemEvent::NewTransfer(TransferInfo {
-                    slot: transaction_pretty.slot,
-                    signature: transaction_pretty.signature.to_string(),
-                    tx: Some(transaction),
-                }));
             }
             _ => {}
         }

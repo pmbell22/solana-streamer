@@ -282,9 +282,8 @@ impl PooledTransactionPretty {
         self.transaction.signature =
             Signature::try_from(tx.signature.as_slice()).expect("valid signature");
         self.transaction.is_vote = tx.is_vote;
-        self.transaction.tx = yellowstone_grpc_proto::convert_from::create_tx_with_meta(tx)
-            .expect("valid tx with meta");
         self.transaction.program_received_time_us = get_high_perf_clock();
+        self.transaction.grpc_tx = tx;
     }
 }
 

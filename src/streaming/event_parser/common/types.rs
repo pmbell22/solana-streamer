@@ -519,3 +519,170 @@ pub fn parse_swap_data_from_next_instructions(
         None
     }
 }
+
+/// Parse token transfer data from next instructions
+/// TODO: - wait refactor
+pub fn parse_swap_data_from_next_grpc_instructions(
+    event: &dyn UnifiedEvent,
+    inner_instruction: &yellowstone_grpc_proto::prelude::InnerInstructions,
+    current_index: i8,
+    accounts: &[Pubkey],
+) -> Option<SwapData> {
+    let mut swap_data = SwapData {
+        from_mint: Pubkey::default(),
+        to_mint: Pubkey::default(),
+        from_amount: 0,
+        to_amount: 0,
+        description: None,
+    };
+
+    // 先根据 event 取出关键信息
+    let mut user: Option<Pubkey> = None;
+    let mut from_mint: Option<Pubkey> = None;
+    let mut to_mint: Option<Pubkey> = None;
+    let mut user_from_token: Option<Pubkey> = None;
+    let mut user_to_token: Option<Pubkey> = None;
+    let mut from_vault: Option<Pubkey> = None;
+    let mut to_vault: Option<Pubkey> = None;
+
+    match_event!(&*event, {
+        BonkTradeEvent => |e: BonkTradeEvent| {
+            user = Some(e.payer);
+            from_mint = Some(e.base_token_mint);
+            to_mint = Some(e.quote_token_mint);
+            user_from_token = Some(e.user_base_token);
+            user_to_token = Some(e.user_quote_token);
+            from_vault = Some(e.base_vault);
+            to_vault = Some(e.quote_vault);
+        },
+        PumpFunTradeEvent => |e: PumpFunTradeEvent| {
+            swap_data.from_mint = if e.is_buy { *SOL_MINT } else { e.mint };
+            swap_data.to_mint   = if e.is_buy { e.mint } else { *SOL_MINT };
+        },
+        PumpSwapBuyEvent => |e: PumpSwapBuyEvent| {
+            swap_data.from_mint = e.quote_mint;
+            swap_data.to_mint   = e.base_mint;
+        },
+        PumpSwapSellEvent => |e: PumpSwapSellEvent| {
+            swap_data.from_mint = e.base_mint;
+            swap_data.to_mint   = e.quote_mint;
+        },
+        RaydiumCpmmSwapEvent => |e: RaydiumCpmmSwapEvent| {
+            user = Some(e.payer);
+            from_mint = Some(e.input_token_mint);
+            to_mint   = Some(e.output_token_mint);
+            user_from_token = Some(e.input_token_account);
+            user_to_token   = Some(e.output_token_account);
+            from_vault = Some(e.input_vault);
+            to_vault   = Some(e.output_vault);
+        },
+        RaydiumClmmSwapEvent => |e: RaydiumClmmSwapEvent| {
+            user = Some(e.payer);
+            swap_data.description = Some("Unable to get from_mint and to_mint from RaydiumClmmSwapEvent".into());
+            user_from_token = Some(e.input_token_account);
+            user_to_token   = Some(e.output_token_account);
+            from_vault = Some(e.input_vault);
+            to_vault   = Some(e.output_vault);
+        },
+        RaydiumClmmSwapV2Event => |e: RaydiumClmmSwapV2Event| {
+            user = Some(e.payer);
+            from_mint = Some(e.input_vault_mint);
+            to_mint   = Some(e.output_vault_mint);
+            user_from_token = Some(e.input_token_account);
+            user_to_token   = Some(e.output_token_account);
+            from_vault = Some(e.input_vault);
+            to_vault   = Some(e.output_vault);
+        },
+        RaydiumAmmV4SwapEvent => |e: RaydiumAmmV4SwapEvent| {
+            user = Some(e.user_source_owner);
+            swap_data.description = Some("Unable to get from_mint and to_mint from RaydiumAmmV4SwapEvent".into());
+            user_from_token = Some(e.user_source_token_account);
+            user_to_token   = Some(e.user_destination_token_account);
+            from_vault = Some(e.pool_pc_token_account);
+            to_vault   = Some(e.pool_coin_token_account);
+        },
+    });
+
+    let user_to_token = user_to_token.unwrap_or_default();
+    let user_from_token = user_from_token.unwrap_or_default();
+    let to_vault = to_vault.unwrap_or_default();
+    let from_vault = from_vault.unwrap_or_default();
+    let to_mint = to_mint.unwrap_or_default();
+    let from_mint = from_mint.unwrap_or_default();
+
+    // 单次循环完成提取和判断
+    for instruction in inner_instruction.instructions.iter().skip((current_index + 1) as usize) {
+        let compiled = &instruction;
+        let program_id = accounts[compiled.program_id_index as usize];
+        if !SYSTEM_PROGRAMS.contains(&program_id) {
+            break;
+        }
+        let data = &compiled.data;
+
+        // 使用 SIMD 验证数据格式
+        if !SimdUtils::validate_data_format(data, 8) {
+            continue;
+        }
+
+        let get_pubkey = |i: usize| accounts[compiled.accounts[i] as usize];
+        let (source, destination, amount) = match data[0] {
+            12 if compiled.accounts.len() >= 4 => {
+                let amt = u64::from_le_bytes(data[1..9].try_into().unwrap());
+                (get_pubkey(0), get_pubkey(2), amt)
+            }
+            3 if compiled.accounts.len() >= 3 => {
+                let amt = u64::from_le_bytes(data[1..9].try_into().unwrap());
+                (get_pubkey(0), get_pubkey(1), amt)
+            }
+            2 if compiled.accounts.len() >= 2 => {
+                let amt = u64::from_le_bytes(data[4..12].try_into().unwrap());
+                (get_pubkey(0), get_pubkey(1), amt)
+            }
+            _ => continue,
+        };
+
+        match (source, destination) {
+            (s, d) if s == user_to_token && d == to_vault => {
+                swap_data.from_mint = to_mint;
+                swap_data.from_amount = amount;
+            }
+            (s, d) if s == from_vault && d == user_from_token => {
+                swap_data.to_mint = from_mint;
+                swap_data.to_amount = amount;
+            }
+            (s, d) if s == user_from_token && d == from_vault => {
+                swap_data.from_mint = from_mint;
+                swap_data.from_amount = amount;
+            }
+            (s, d) if s == to_vault && d == user_to_token => {
+                swap_data.to_mint = to_mint;
+                swap_data.to_amount = amount;
+            }
+            (s, d) if s == user_from_token && d == to_vault => {
+                swap_data.from_mint = from_mint;
+                swap_data.from_amount = amount;
+            }
+            (s, d) if s == from_vault && d == user_to_token => {
+                swap_data.to_mint = to_mint;
+                swap_data.to_amount = amount;
+            }
+            _ => {}
+        }
+        if swap_data.from_mint != Pubkey::default() && swap_data.to_mint != Pubkey::default() {
+            break;
+        }
+        if swap_data.from_amount != 0 && swap_data.to_amount != 0 {
+            break;
+        }
+    }
+
+    if swap_data.from_mint != Pubkey::default()
+        || swap_data.to_mint != Pubkey::default()
+        || swap_data.from_amount != 0
+        || swap_data.to_amount != 0
+    {
+        Some(swap_data)
+    } else {
+        None
+    }
+}

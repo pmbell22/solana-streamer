@@ -2,14 +2,17 @@ use solana_sdk::{pubkey::Pubkey, signature::Signature};
 use solana_transaction_status::{TransactionWithStatusMeta, VersionedTransactionWithStatusMeta};
 use std::{collections::HashMap, fmt};
 use yellowstone_grpc_proto::{
-    geyser::{SubscribeRequestFilterAccounts, SubscribeRequestFilterTransactions},
+    geyser::{
+        SubscribeRequestFilterAccounts, SubscribeRequestFilterTransactions,
+        SubscribeUpdateTransactionInfo,
+    },
     prost_types::Timestamp,
 };
 
 pub type TransactionsFilterMap = HashMap<String, SubscribeRequestFilterTransactions>;
 pub type AccountsFilterMap = HashMap<String, SubscribeRequestFilterAccounts>;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum EventPretty {
     BlockMeta(BlockMetaPretty),
     Transaction(TransactionPretty),
@@ -71,8 +74,8 @@ pub struct TransactionPretty {
     pub block_time: Option<Timestamp>,
     pub signature: Signature,
     pub is_vote: bool,
-    pub tx: TransactionWithStatusMeta,
     pub program_received_time_us: i64,
+    pub grpc_tx: SubscribeUpdateTransactionInfo,
 }
 
 impl fmt::Debug for TransactionPretty {
@@ -96,10 +99,7 @@ impl Default for TransactionPretty {
             block_time: None,
             signature: Signature::default(),
             is_vote: false,
-            tx: TransactionWithStatusMeta::Complete(VersionedTransactionWithStatusMeta {
-                transaction: solana_sdk::transaction::VersionedTransaction::default(),
-                meta: solana_transaction_status::TransactionStatusMeta::default(),
-            }),
+            grpc_tx: SubscribeUpdateTransactionInfo::default(),
             program_received_time_us: 0,
         }
     }

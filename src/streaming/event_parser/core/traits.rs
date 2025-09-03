@@ -13,13 +13,16 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
 use std::time::Instant;
+use yellowstone_grpc_proto::geyser::SubscribeUpdateTransactionInfo;
 
 use super::global_state::{
     add_bonk_dev_address, add_dev_address, is_bonk_dev_address, is_dev_address,
 };
 
 use crate::streaming::common::simd_utils::SimdUtils;
-use crate::streaming::event_parser::common::{parse_swap_data_from_next_instructions, SwapData};
+use crate::streaming::event_parser::common::{
+    parse_swap_data_from_next_grpc_instructions, parse_swap_data_from_next_instructions, SwapData,
+};
 use crate::streaming::event_parser::protocols::pumpswap::{PumpSwapBuyEvent, PumpSwapSellEvent};
 use crate::streaming::event_parser::{
     common::{EventMetadata, EventType, ProtocolType},
@@ -289,6 +292,21 @@ pub trait EventParser: Send + Sync {
         config: &GenericEventParseConfig,
     ) -> Vec<Box<dyn UnifiedEvent>>;
 
+    /// 从内联指令中解析事件数据
+    #[allow(clippy::too_many_arguments)]
+    fn parse_events_from_grpc_inner_instruction(
+        &self,
+        inner_instruction: &yellowstone_grpc_proto::prelude::InnerInstruction,
+        signature: Signature,
+        slot: u64,
+        block_time: Option<Timestamp>,
+        program_received_time_us: i64,
+        outer_index: i64,
+        inner_index: Option<i64>,
+        transaction_index: Option<u64>,
+        config: &GenericEventParseConfig,
+    ) -> Vec<Box<dyn UnifiedEvent>>;
+
     /// 从指令中解析事件数据
     #[allow(clippy::too_many_arguments)]
     fn parse_events_from_instruction(
@@ -306,6 +324,80 @@ pub trait EventParser: Send + Sync {
         inner_instructions: Option<&InnerInstructions>,
         callback: Arc<dyn for<'a> Fn(&'a Box<dyn UnifiedEvent>) + Send + Sync>,
     ) -> anyhow::Result<()>;
+
+    /// 从指令中解析事件数据
+    /// TODO: - wait refactor
+    #[allow(clippy::too_many_arguments)]
+    fn parse_events_from_grpc_instruction(
+        &self,
+        instruction: &yellowstone_grpc_proto::prelude::CompiledInstruction,
+        accounts: &[Pubkey],
+        signature: Signature,
+        slot: u64,
+        block_time: Option<Timestamp>,
+        program_received_time_us: i64,
+        outer_index: i64,
+        inner_index: Option<i64>,
+        bot_wallet: Option<Pubkey>,
+        transaction_index: Option<u64>,
+        inner_instructions: Option<&yellowstone_grpc_proto::prelude::InnerInstructions>,
+        callback: Arc<dyn for<'a> Fn(&'a Box<dyn UnifiedEvent>) + Send + Sync>,
+    ) -> anyhow::Result<()>;
+
+    #[allow(clippy::too_many_arguments)]
+    async fn parse_instruction_events_from_grpc_transaction(
+        &self,
+        compiled_instructions: &[yellowstone_grpc_proto::prelude::CompiledInstruction],
+        signature: Signature,
+        slot: Option<u64>,
+        block_time: Option<Timestamp>,
+        program_received_time_us: i64,
+        accounts: &[Pubkey],
+        inner_instructions: &[yellowstone_grpc_proto::prelude::InnerInstructions],
+        bot_wallet: Option<Pubkey>,
+        transaction_index: Option<u64>,
+        callback: Arc<dyn for<'a> Fn(&'a Box<dyn UnifiedEvent>) + Send + Sync>,
+    ) -> anyhow::Result<()> {
+        // 获取交易的指令和账户
+        let mut accounts = accounts.to_vec();
+        // 检查交易中是否包含程序
+        let has_program = accounts.iter().any(|account| self.should_handle(account));
+        if has_program {
+            // 解析每个指令
+            for (index, instruction) in compiled_instructions.iter().enumerate() {
+                if let Some(program_id) = accounts.get(instruction.program_id_index as usize) {
+                    if self.should_handle(program_id) {
+                        let max_idx = instruction.accounts.iter().max().unwrap_or(&0);
+                        // 补齐accounts(使用Pubkey::default())
+                        if *max_idx as usize > accounts.len() {
+                            for _i in accounts.len()..*max_idx as usize {
+                                accounts.push(Pubkey::default());
+                            }
+                        }
+                        let inner_instructions = inner_instructions
+                            .iter()
+                            .find(|inner_instruction| inner_instruction.index == index as u32);
+                        self.parse_grpc_instruction(
+                            instruction,
+                            &accounts,
+                            signature,
+                            slot,
+                            block_time,
+                            program_received_time_us,
+                            index as i64,
+                            None,
+                            bot_wallet,
+                            transaction_index,
+                            inner_instructions,
+                            Arc::clone(&callback),
+                        )
+                        .await?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
 
     /// 从VersionedTransaction中解析指令事件的通用方法
     #[allow(clippy::too_many_arguments)]
@@ -424,10 +516,9 @@ pub trait EventParser: Send + Sync {
         Ok(())
     }
 
-    /// 解析交易，使用所有权语义的回调以避免不必要的克隆
-    async fn parse_transaction_owned(
+    async fn parse_grpc_transaction_owned(
         &self,
-        tx: TransactionWithStatusMeta,
+        grpc_tx: SubscribeUpdateTransactionInfo,
         signature: Signature,
         slot: Option<u64>,
         block_time: Option<Timestamp>,
@@ -441,8 +532,8 @@ pub trait EventParser: Send + Sync {
             callback(event.clone_boxed());
         });
         // 调用原始方法
-        self.parse_transaction(
-            tx,
+        self.parse_grpc_transaction(
+            grpc_tx,
             signature,
             slot,
             block_time,
@@ -454,9 +545,9 @@ pub trait EventParser: Send + Sync {
         .await
     }
 
-    async fn parse_transaction(
+    async fn parse_grpc_transaction(
         &self,
-        tx: TransactionWithStatusMeta,
+        grpc_tx: SubscribeUpdateTransactionInfo,
         signature: Signature,
         slot: Option<u64>,
         block_time: Option<Timestamp>,
@@ -465,60 +556,86 @@ pub trait EventParser: Send + Sync {
         transaction_index: Option<u64>,
         callback: Arc<dyn for<'a> Fn(&'a Box<dyn UnifiedEvent>) + Send + Sync>,
     ) -> anyhow::Result<()> {
-        let versioned_tx = tx.get_transaction();
-        let meta = tx.get_status_meta();
-        let mut address_table_lookups: Vec<Pubkey> = vec![];
-        let mut inner_instructions: Vec<InnerInstructions> = vec![];
-        if let Some(meta) = meta {
-            inner_instructions = meta.inner_instructions.unwrap_or_default();
-            address_table_lookups.reserve(
-                meta.loaded_addresses.writable.len() + meta.loaded_addresses.readonly.len(),
-            );
-            address_table_lookups.extend(
-                meta.loaded_addresses.writable.into_iter().chain(meta.loaded_addresses.readonly),
-            );
-        }
-        let mut accounts = Vec::with_capacity(
-            versioned_tx.message.static_account_keys().len() + address_table_lookups.len(),
-        );
-        accounts.extend_from_slice(versioned_tx.message.static_account_keys());
-        accounts.extend(address_table_lookups);
-        // 使用 Arc 包装共享数据，避免不必要的克隆
-        let accounts_arc = Arc::new(accounts);
-        let inner_instructions_arc = Arc::new(inner_instructions);
-        // 解析指令事件
-        self.parse_instruction_events_from_versioned_transaction(
-            &versioned_tx,
-            signature,
-            slot,
-            block_time,
-            program_received_time_us,
-            &accounts_arc,
-            &inner_instructions_arc,
-            bot_wallet,
-            transaction_index,
-            callback.clone(),
-        )
-        .await?;
+        if let Some(transition) = grpc_tx.transaction {
+            if let Some(message) = &transition.message {
+                let mut address_table_lookups: Vec<Vec<u8>> = vec![];
+                let mut inner_instructions: Vec<
+                    yellowstone_grpc_proto::solana::storage::confirmed_block::InnerInstructions,
+                > = vec![];
 
-        // 解析嵌套指令事件
-        for inner_instruction in inner_instructions_arc.iter() {
-            for (index, instruction) in inner_instruction.instructions.iter().enumerate() {
-                self.parse_instruction(
-                    &instruction.instruction,
-                    &accounts_arc,
+                if let Some(meta) = grpc_tx.meta {
+                    inner_instructions = meta.inner_instructions;
+                    address_table_lookups.reserve(
+                        meta.loaded_writable_addresses.len() + meta.loaded_writable_addresses.len(),
+                    );
+                    let loaded_writable_addresses = meta.loaded_writable_addresses;
+                    let loaded_readonly_addresses = meta.loaded_readonly_addresses;
+                    address_table_lookups.extend(
+                        loaded_writable_addresses.into_iter().chain(loaded_readonly_addresses),
+                    );
+                }
+
+                let mut accounts_bytes: Vec<Vec<u8>> =
+                    Vec::with_capacity(message.account_keys.len() + address_table_lookups.len());
+                accounts_bytes.extend_from_slice(&message.account_keys);
+                accounts_bytes.extend(address_table_lookups);
+                // 转换为 Pubkey
+                let accounts: Vec<Pubkey> = accounts_bytes
+                    .iter()
+                    .filter_map(|account| {
+                        if account.len() == 32 {
+                            Some(Pubkey::try_from(account.as_slice()).unwrap_or_default())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
+                // 使用 Arc 包装共享数据，避免不必要的克隆
+                let accounts_arc = Arc::new(accounts);
+                let inner_instructions_arc = Arc::new(inner_instructions);
+                // 解析指令事件
+                let instructions = &message.instructions;
+                self.parse_instruction_events_from_grpc_transaction(
+                    &instructions,
                     signature,
                     slot,
                     block_time,
                     program_received_time_us,
-                    inner_instruction.index as i64,
-                    Some(index as i64),
+                    &accounts_arc,
+                    &inner_instructions_arc,
                     bot_wallet,
                     transaction_index,
-                    Some(&inner_instruction),
                     callback.clone(),
                 )
                 .await?;
+
+                // 解析嵌套指令事件
+                for inner_instruction in inner_instructions_arc.iter() {
+                    for (index, instruction) in inner_instruction.instructions.iter().enumerate() {
+                        let accounts = &instruction.accounts;
+                        let data = &instruction.data;
+                        let instruction = yellowstone_grpc_proto::prelude::CompiledInstruction {
+                            program_id_index: instruction.program_id_index,
+                            accounts: accounts.to_vec(),
+                            data: data.to_vec(),
+                        };
+                        self.parse_grpc_instruction(
+                            &instruction,
+                            &accounts_arc,
+                            signature,
+                            slot,
+                            block_time,
+                            program_received_time_us,
+                            inner_instruction.index as i64,
+                            Some(index as i64),
+                            bot_wallet,
+                            transaction_index,
+                            Some(&inner_instruction),
+                            callback.clone(),
+                        )
+                        .await?;
+                    }
+                }
             }
         }
 
@@ -682,6 +799,39 @@ pub trait EventParser: Send + Sync {
             config,
         );
         Ok(events)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    async fn parse_grpc_instruction(
+        &self,
+        instruction: &yellowstone_grpc_proto::prelude::CompiledInstruction,
+        accounts: &[Pubkey],
+        signature: Signature,
+        slot: Option<u64>,
+        block_time: Option<Timestamp>,
+        program_received_time_us: i64,
+        outer_index: i64,
+        inner_index: Option<i64>,
+        bot_wallet: Option<Pubkey>,
+        transaction_index: Option<u64>,
+        inner_instructions: Option<&yellowstone_grpc_proto::prelude::InnerInstructions>,
+        callback: Arc<dyn for<'a> Fn(&'a Box<dyn UnifiedEvent>) + Send + Sync>,
+    ) -> anyhow::Result<()> {
+        let slot = slot.unwrap_or(0);
+        self.parse_events_from_grpc_instruction(
+            instruction,
+            accounts,
+            signature,
+            slot,
+            block_time,
+            program_received_time_us,
+            outer_index,
+            inner_index,
+            bot_wallet,
+            transaction_index,
+            inner_instructions,
+            callback,
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -894,6 +1044,42 @@ impl EventParser for GenericEventParser {
         events
     }
 
+    /// 从内联指令中解析事件数据
+    #[allow(clippy::too_many_arguments)]
+    fn parse_events_from_grpc_inner_instruction(
+        &self,
+        inner_instruction: &yellowstone_grpc_proto::prelude::InnerInstruction,
+        signature: Signature,
+        slot: u64,
+        block_time: Option<Timestamp>,
+        program_received_time_us: i64,
+        outer_index: i64,
+        inner_index: Option<i64>,
+        transaction_index: Option<u64>,
+        config: &GenericEventParseConfig,
+    ) -> Vec<Box<dyn UnifiedEvent>> {
+        // Use SIMD-optimized data validation
+        if !SimdUtils::validate_instruction_data_simd(&inner_instruction.data, 16, 0) {
+            return Vec::new();
+        }
+        let data = &inner_instruction.data[16..];
+        let mut events = Vec::new();
+        if let Some(event) = self.parse_inner_instruction_event(
+            config,
+            data,
+            signature,
+            slot,
+            block_time,
+            program_received_time_us,
+            outer_index,
+            inner_index,
+            transaction_index,
+        ) {
+            events.push(event);
+        }
+        events
+    }
+
     /// 从指令中解析事件
     #[allow(clippy::too_many_arguments)]
     fn parse_events_from_instruction(
@@ -995,6 +1181,141 @@ impl EventParser for GenericEventParser {
                     let swap_data_handle = s.spawn(|| {
                         if !event.swap_data_is_parsed() {
                             parse_swap_data_from_next_instructions(
+                                &*event,
+                                inner_instructions_ref,
+                                inner_index.unwrap_or(-1_i64) as i8,
+                                &accounts,
+                            )
+                        } else {
+                            None
+                        }
+                    });
+
+                    // 等待两个任务完成
+                    (inner_event_handle.join().unwrap(), swap_data_handle.join().unwrap())
+                });
+
+                inner_instruction_event = inner_event_result;
+                if let Some(swap_data) = swap_data_result {
+                    event.set_swap_data(swap_data);
+                }
+            }
+            // 合并事件
+            if let Some(inner_instruction_event) = inner_instruction_event {
+                event.merge(&*inner_instruction_event);
+            }
+            // 设置处理时间（使用高性能时钟）
+            event.set_program_handle_time_consuming_us(elapsed_micros_since(
+                program_received_time_us,
+            ));
+            event = process_event(event, bot_wallet);
+            callback(&event);
+        }
+        Ok(())
+    }
+
+    /// 从指令中解析事件
+    /// TODO: - wait refactor
+    #[allow(clippy::too_many_arguments)]
+    fn parse_events_from_grpc_instruction(
+        &self,
+        instruction: &yellowstone_grpc_proto::prelude::CompiledInstruction,
+        accounts: &[Pubkey],
+        signature: Signature,
+        slot: u64,
+        block_time: Option<Timestamp>,
+        program_received_time_us: i64,
+        outer_index: i64,
+        inner_index: Option<i64>,
+        bot_wallet: Option<Pubkey>,
+        transaction_index: Option<u64>,
+        inner_instructions: Option<&yellowstone_grpc_proto::prelude::InnerInstructions>,
+        callback: Arc<dyn for<'a> Fn(&'a Box<dyn UnifiedEvent>) + Send + Sync>,
+    ) -> anyhow::Result<()> {
+        let program_id = accounts[instruction.program_id_index as usize];
+        if !self.should_handle(&program_id) {
+            return Ok(());
+        }
+        // 一维化并行处理：将所有 (discriminator, config) 组合展开并行处理
+        let all_processing_params: Vec<_> = self
+            .instruction_configs
+            .iter()
+            .filter(|(disc, _)| {
+                // Use SIMD-optimized data validation and discriminator matching
+                SimdUtils::validate_instruction_data_simd(&instruction.data, disc.len(), disc.len())
+                    && SimdUtils::fast_discriminator_match(&instruction.data, disc)
+            })
+            .flat_map(|(disc, configs)| {
+                configs
+                    .iter()
+                    .filter(|config| config.program_id == program_id)
+                    .map(move |config| (disc, config))
+            })
+            .collect();
+
+        // Use SIMD-optimized account indices validation (只需检查一次)
+        if !SimdUtils::validate_account_indices_simd(&instruction.accounts, accounts.len()) {
+            return Ok(());
+        }
+
+        // 使用缓存构建账户公钥列表，避免重复分配 (只需构建一次)
+        let account_pubkeys = {
+            let mut cache_guard = self.account_cache.lock();
+            cache_guard.build_account_pubkeys(&instruction.accounts, accounts).to_vec()
+        };
+
+        // 并行处理所有 (discriminator, config) 组合
+        let all_results: Vec<_> = all_processing_params
+            .iter()
+            .filter_map(|(disc, config)| {
+                let data = &instruction.data[disc.len()..];
+                self.parse_instruction_event(
+                    config,
+                    data,
+                    &account_pubkeys,
+                    signature,
+                    slot,
+                    block_time,
+                    program_received_time_us,
+                    outer_index,
+                    inner_index,
+                    transaction_index,
+                )
+                .map(|event| ((*disc).clone(), (*config).clone(), event))
+            })
+            .collect();
+
+        for (_disc, config, mut event) in all_results {
+            // 阻塞处理：原有的同步逻辑
+            let mut inner_instruction_event: Option<Box<dyn UnifiedEvent>> = None;
+            if inner_instructions.is_some() {
+                let inner_instructions_ref = inner_instructions.unwrap();
+
+                // 并行执行两个任务
+                let (inner_event_result, swap_data_result) = std::thread::scope(|s| {
+                    let inner_event_handle = s.spawn(|| {
+                        for inner_instruction in inner_instructions_ref.instructions.iter() {
+                            let result = self.parse_events_from_grpc_inner_instruction(
+                                &inner_instruction,
+                                signature,
+                                slot,
+                                block_time,
+                                program_received_time_us,
+                                outer_index,
+                                inner_index,
+                                transaction_index,
+                                &config,
+                            );
+                            if result.len() > 0 {
+                                return Some(result[0].clone());
+                            }
+                        }
+                        None
+                    });
+
+                    let swap_data_handle = s.spawn(|| {
+                        if !event.swap_data_is_parsed() {
+                            parse_swap_data_from_next_grpc_instructions(
                                 &*event,
                                 inner_instructions_ref,
                                 inner_index.unwrap_or(-1_i64) as i8,

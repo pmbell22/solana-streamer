@@ -1,7 +1,6 @@
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
-
 use crossbeam_queue::SegQueue;
 use solana_sdk::pubkey::Pubkey;
 
@@ -31,19 +30,14 @@ pub struct EventProcessor {
     pub(crate) event_type_filter: Option<EventTypeFilter>,
     pub(crate) callback: Option<Arc<dyn Fn(Box<dyn UnifiedEvent>) + Send + Sync>>,
     pub(crate) backpressure_config: BackpressureConfig,
-    /// High-performance lockfree queue for gRPC events
     pub(crate) grpc_queue: Arc<SegQueue<(EventPretty, Option<Pubkey>)>>,
-    /// High-performance lockfree queue for shred events  
     pub(crate) shred_queue: Arc<SegQueue<(TransactionWithSlot, Option<Pubkey>)>>,
-    /// Fast O(1) counter for Drop strategy (avoids expensive SegQueue::len())
     pub(crate) grpc_pending_count: Arc<AtomicUsize>,
     pub(crate) shred_pending_count: Arc<AtomicUsize>,
-    /// Processing thread control
     pub(crate) processing_shutdown: Arc<AtomicBool>,
 }
 
 impl EventProcessor {
-    /// Create a new high-performance event processor
     pub fn new(metrics_manager: MetricsManager, config: ClientConfig) -> Self {
         let backpressure_config = config.backpressure.clone();
         let grpc_queue = Arc::new(SegQueue::new());
@@ -78,21 +72,15 @@ impl EventProcessor {
         self.protocols = protocols;
         self.event_type_filter = event_type_filter;
 
-        // Check if Block processing thread should be started (before moving backpressure_config)
-        let should_start_block_processing = true;
-        // matches!(backpressure_config.strategy, BackpressureStrategy::Block);
-
         self.backpressure_config = backpressure_config;
         self.callback = callback;
-        // Use stored values to initialize parser_cache
         let protocols_ref = &self.protocols;
         let event_type_filter_ref = self.event_type_filter.as_ref();
         self.parser_cache.get_or_init(|| {
             Arc::new(MutilEventParser::new(protocols_ref.clone(), event_type_filter_ref.cloned()))
         });
 
-        // Start Block processing thread if using Block strategy
-        if should_start_block_processing {
+        if matches!(self.backpressure_config.strategy, BackpressureStrategy::Block) {
             self.start_block_processing_thread();
         }
     }
@@ -101,7 +89,6 @@ impl EventProcessor {
         self.parser_cache.get().unwrap().clone()
     }
 
-    /// Create adapter callback
     fn create_adapter_callback(&self) -> Arc<dyn Fn(Box<dyn UnifiedEvent>) + Send + Sync> {
         let callback = self.callback.clone().unwrap();
         let metrics_manager = self.metrics_manager.clone();
@@ -121,7 +108,6 @@ impl EventProcessor {
         self.apply_backpressure_control(event_pretty, bot_wallet).await
     }
 
-    /// Apply backpressure control strategy  
     async fn apply_backpressure_control(
         &self,
         event_pretty: EventPretty,
@@ -129,7 +115,6 @@ impl EventProcessor {
     ) -> AnyResult<()> {
         match self.backpressure_config.strategy {
             BackpressureStrategy::Block => {
-                // Block strategy: async wait if queue is full (backpressure control)
                 loop {
                     let current_pending = self.grpc_pending_count.load(Ordering::Relaxed);
                     if current_pending < self.backpressure_config.permits {
@@ -137,14 +122,12 @@ impl EventProcessor {
                         self.grpc_pending_count.fetch_add(1, Ordering::Relaxed);
                         break;
                     }
-                    // Async yield to avoid blocking gRPC data source
+
                     tokio::task::yield_now().await;
                 }
                 Ok(())
             }
             BackpressureStrategy::Drop => {
-                // Drop strategy: Use O(1) atomic counter instead of expensive O(n) len()
-                // If pending count >= permits, DROP the event immediately
                 let current_pending = self.grpc_pending_count.load(Ordering::Relaxed);
                 if current_pending >= self.backpressure_config.permits {
                     self.metrics_manager.increment_dropped_events();
@@ -197,16 +180,16 @@ impl EventProcessor {
                 self.metrics_manager.add_tx_process_count();
                 let slot = transaction_pretty.slot;
                 let signature = transaction_pretty.signature;
-                let tx = transaction_pretty.tx;
                 let block_time = transaction_pretty.block_time;
                 let program_received_time_us = transaction_pretty.program_received_time_us;
                 let transaction_index = transaction_pretty.transaction_index;
-                // Use cache to get parser
+                let grpc_tx = transaction_pretty.grpc_tx;
+
                 let parser = self.get_parser();
                 let adapter_callback = self.create_adapter_callback();
                 parser
-                    .parse_transaction_owned(
-                        tx,
+                    .parse_grpc_transaction_owned(
+                        grpc_tx,
                         signature,
                         Some(slot),
                         block_time,
@@ -244,7 +227,6 @@ impl EventProcessor {
         }
     }
 
-    /// Process a single transaction immediately
     pub async fn process_shred_transaction_immediate(
         &self,
         transaction_with_slot: TransactionWithSlot,
@@ -253,17 +235,14 @@ impl EventProcessor {
         self.process_shred_transaction(transaction_with_slot, bot_wallet).await
     }
 
-    /// Process shred transaction with backpressure control and performance monitoring
     pub async fn process_shred_transaction_with_metrics(
         &self,
         transaction_with_slot: TransactionWithSlot,
         bot_wallet: Option<Pubkey>,
     ) -> AnyResult<()> {
-        // Backpressure control logic
         self.apply_shred_backpressure_control(transaction_with_slot, bot_wallet).await
     }
 
-    /// Apply shred backpressure control strategy
     async fn apply_shred_backpressure_control(
         &self,
         transaction_with_slot: TransactionWithSlot,
@@ -271,7 +250,6 @@ impl EventProcessor {
     ) -> AnyResult<()> {
         match self.backpressure_config.strategy {
             BackpressureStrategy::Block => {
-                // Block strategy: async wait if queue is full (backpressure control)
                 loop {
                     let current_pending = self.shred_pending_count.load(Ordering::Relaxed);
                     if current_pending < self.backpressure_config.permits {
@@ -279,13 +257,12 @@ impl EventProcessor {
                         self.shred_pending_count.fetch_add(1, Ordering::Relaxed);
                         break;
                     }
-                    // Async yield to avoid blocking shred data source
+
                     tokio::task::yield_now().await;
                 }
                 Ok(())
             }
             BackpressureStrategy::Drop => {
-                // Drop strategy: Use O(1) atomic counter instead of expensive O(n) len()
                 let current_pending = self.shred_pending_count.load(Ordering::Relaxed);
                 if current_pending >= self.backpressure_config.permits {
                     self.metrics_manager.increment_dropped_events();
@@ -326,7 +303,7 @@ impl EventProcessor {
         let slot = transaction_with_slot.slot;
         let signature = tx.signatures[0];
         let program_received_time_us = transaction_with_slot.program_received_time_us;
-        // Use cache to get parser
+
         let parser = self.get_parser();
         let adapter_callback = self.create_adapter_callback();
         parser
@@ -350,9 +327,7 @@ impl EventProcessor {
         self.metrics_manager.update_metrics(ty, count, time_us);
     }
 
-    /// Start dedicated processing threads for all strategies
     fn start_block_processing_thread(&self) {
-        // Reset shutdown flag
         self.processing_shutdown.store(false, Ordering::Relaxed);
 
         let grpc_queue = Arc::clone(&self.grpc_queue);
@@ -363,36 +338,44 @@ impl EventProcessor {
         let shutdown_flag_clone = Arc::clone(&self.processing_shutdown);
         let processor = self.clone();
         let processor_clone = self.clone();
-        // 1. 专用线程 + 2. Busy-wait + 4. 无锁处理
+        // Dedicated thread with busy-wait and lock-free processing
         std::thread::spawn(move || {
-            // 创建blocking runtime for async processing
-            let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+            let worker_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4); // 如果获取失败则回退到4个线程
+
+            let rt = tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(worker_threads)
+                .enable_all()
+                .build()
+                .unwrap();
+
             while !shutdown_flag.load(Ordering::Relaxed) {
                 if let Some((event_pretty, bot_wallet)) = grpc_queue.pop() {
-                    // Decrement pending counter when consuming from queue
                     grpc_pending_count.fetch_sub(1, Ordering::Relaxed);
-                    // Process event in blocking runtime
                     if let Err(e) = rt.block_on(
                         processor.process_grpc_event_transaction(event_pretty, bot_wallet),
                     ) {
                         println!("Error processing gRPC event: {}", e);
                     }
                 } else {
-                    // 2. 优化忙等待: 使用轻量级休眠减少CPU占用
+                    // Yield to reduce CPU usage in busy wait
                     std::thread::yield_now();
                 }
             }
         });
 
-        // Shred处理也使用相同的低延迟优化
+        // Shred processing with same low-latency optimization
         std::thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap();
+            let worker_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4); // 如果获取失败则回退到4个线程
+
+            let rt = tokio::runtime::Builder::new_multi_thread()
+                .worker_threads(worker_threads)
+                .enable_all()
+                .build()
+                .unwrap();
 
             while !shutdown_flag_clone.load(Ordering::Relaxed) {
                 if let Some((transaction_with_slot, bot_wallet)) = shred_queue.pop() {
-                    // Decrement pending counter when consuming from queue
                     shred_pending_count.fetch_sub(1, Ordering::Relaxed);
-                    // Process transaction in blocking runtime
                     if let Err(e) = rt.block_on(
                         processor_clone
                             .process_shred_transaction(transaction_with_slot, bot_wallet),
@@ -400,20 +383,18 @@ impl EventProcessor {
                         log::error!("Error processing shred transaction: {}", e);
                     }
                 } else {
-                    // 优化忙等待: 使用轻量级休眠减少CPU占用
+                    // Yield to reduce CPU usage in busy wait
                     std::thread::yield_now();
                 }
             }
         });
     }
 
-    /// Stop processing threads
     pub fn stop_processing(&self) {
         self.processing_shutdown.store(true, Ordering::Relaxed);
     }
 }
 
-// Implement Clone trait to support sharing between modules
 impl Clone for EventProcessor {
     fn clone(&self) -> Self {
         Self {

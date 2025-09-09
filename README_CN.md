@@ -46,14 +46,14 @@ git clone https://github.com/0xfnzero/solana-streamer
 
 ```toml
 # 添加到您的 Cargo.toml
-solana-streamer-sdk = { path = "./solana-streamer", version = "0.4.1" }
+solana-streamer-sdk = { path = "./solana-streamer", version = "0.4.2" }
 ```
 
 ### 使用 crates.io
 
 ```toml
 # 添加到您的 Cargo.toml
-solana-streamer-sdk = "0.4.1"
+solana-streamer-sdk = "0.4.2"
 ```
 
 ## 配置系统
@@ -125,6 +125,8 @@ let config = StreamClientConfig {
 | ShredStream 流 | `shred_example.rs` | 使用 ShredStream 监控交易事件 | `cargo run --example shred_example` | [examples/shred_example.rs](examples/shred_example.rs) |
 | 解析交易事件 | `parse_tx_events` | 解析 Solana 主网交易数据 | `cargo run --example parse_tx_events` | [examples/parse_tx_events.rs](examples/parse_tx_events.rs) |
 | 动态订阅管理 | `dynamic_subscription` | 运行时更新过滤器 | `cargo run --example dynamic_subscription` | [examples/dynamic_subscription.rs](examples/dynamic_subscription.rs) |
+| 代币余额监控 | `token_balance_listen_example` | 监控特定代币账户余额变化 | `cargo run --example token_balance_listen_example` | [examples/token_balance_listen_example.rs](examples/token_balance_listen_example.rs) |
+| Nonce 账户监控 | `nonce_listen_example` | 跟踪 nonce 账户状态变化 | `cargo run --example nonce_listen_example` | [examples/nonce_listen_example.rs](examples/nonce_listen_example.rs) |
 
 ### 事件过滤
 

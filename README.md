@@ -46,14 +46,14 @@ Add the dependency to your `Cargo.toml`:
 
 ```toml
 # Add to your Cargo.toml
-solana-streamer-sdk = { path = "./solana-streamer", version = "0.4.1" }
+solana-streamer-sdk = { path = "./solana-streamer", version = "0.4.2" }
 ```
 
 ### Use crates.io
 
 ```toml
 # Add to your Cargo.toml
-solana-streamer-sdk = "0.4.1"
+solana-streamer-sdk = "0.4.2"
 ```
 
 ## Configuration System
@@ -125,6 +125,8 @@ let config = StreamClientConfig {
 | ShredStream Stream | `shred_example.rs` | Monitor transaction events using ShredStream | `cargo run --example shred_example` | [examples/shred_example.rs](examples/shred_example.rs) |
 | Parse Transaction Events | `parse_tx_events` | Parse Solana mainnet transaction data | `cargo run --example parse_tx_events` | [examples/parse_tx_events.rs](examples/parse_tx_events.rs) |
 | Dynamic Subscription Management | `dynamic_subscription` | Update filters at runtime | `cargo run --example dynamic_subscription` | [examples/dynamic_subscription.rs](examples/dynamic_subscription.rs) |
+| Token Balance Monitoring | `token_balance_listen_example` | Monitor specific token account balance changes | `cargo run --example token_balance_listen_example` | [examples/token_balance_listen_example.rs](examples/token_balance_listen_example.rs) |
+| Nonce Account Monitoring | `nonce_listen_example` | Track nonce account state changes | `cargo run --example nonce_listen_example` | [examples/nonce_listen_example.rs](examples/nonce_listen_example.rs) |
 
 ### Event Filtering
 

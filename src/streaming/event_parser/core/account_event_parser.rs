@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::sync::OnceLock;
 
 use serde::{Deserialize, Serialize};
+use solana_account_decoder::parse_nonce::parse_nonce;
 use solana_sdk::program_pack::Pack;
 use solana_sdk::pubkey::Pubkey;
 use spl_token::state::Account;
@@ -43,6 +44,19 @@ pub struct CommonAccountEvent {
 }
 impl_unified_event!(CommonAccountEvent,);
 
+/// Nonce account event
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct NonceAccountEvent {
+    pub metadata: EventMetadata,
+    pub pubkey: Pubkey,
+    pub executable: bool,
+    pub lamports: u64,
+    pub owner: Pubkey,
+    pub rent_epoch: u64,
+    pub nonce: String,
+}
+impl_unified_event!(NonceAccountEvent,);
+
 /// 账户事件解析器
 pub type AccountEventParserFn =
     fn(account: &AccountPretty, metadata: EventMetadata) -> Option<Box<dyn UnifiedEvent>>;
@@ -52,6 +66,8 @@ static PROTOCOL_CONFIGS_CACHE: OnceLock<HashMap<Protocol, Vec<AccountEventParseC
 
 // 通用账户解析配置的静态缓存
 static COMMON_CONFIG: OnceLock<AccountEventParseConfig> = OnceLock::new();
+// Nonce account config
+static NONCE_CONFIG: OnceLock<AccountEventParseConfig> = OnceLock::new();
 
 pub struct AccountEventParser {}
 
@@ -192,6 +208,19 @@ impl AccountEventParser {
             }
         }
 
+        if event_type_filter.is_none()
+            || event_type_filter.unwrap().include.contains(&EventType::AccountNonce)
+        {
+            let nonce_config = NONCE_CONFIG.get_or_init(|| AccountEventParseConfig {
+                program_id: Pubkey::default(),
+                protocol_type: ProtocolType::Common,
+                event_type: EventType::AccountNonce,
+                account_discriminator: &[1, 0, 0, 0, 1, 0, 0, 0],
+                account_parser: Self::parse_nonce_account_event,
+            });
+            configs.push(nonce_config.clone());
+        }
+
         let common_config = COMMON_CONFIG.get_or_init(|| AccountEventParseConfig {
             program_id: Pubkey::default(),
             protocol_type: ProtocolType::Common,
@@ -255,5 +284,30 @@ impl AccountEventParser {
         };
         event.set_handle_us(elapsed_micros_since(account.recv_us));
         return Some(Box::new(event));
+    }
+
+    pub fn parse_nonce_account_event(
+        account: &AccountPretty,
+        metadata: EventMetadata,
+    ) -> Option<Box<dyn UnifiedEvent>> {
+        if let Ok(info) = parse_nonce(&account.data) {
+            match info {
+                solana_account_decoder::parse_nonce::UiNonceState::Initialized(details) => {
+                    let mut event = NonceAccountEvent {
+                        metadata,
+                        pubkey: account.pubkey,
+                        executable: account.executable,
+                        lamports: account.lamports,
+                        owner: account.owner,
+                        rent_epoch: account.rent_epoch,
+                        nonce: details.blockhash,
+                    };
+                    event.set_handle_us(elapsed_micros_since(account.recv_us));
+                    return Some(Box::new(event));
+                }
+                solana_account_decoder::parse_nonce::UiNonceState::Uninitialized => {}
+            }
+        }
+        None
     }
 }

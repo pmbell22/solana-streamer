@@ -392,6 +392,34 @@ pub trait EventParser: Send + Sync {
                             Arc::clone(&callback),
                         )
                         .await?;
+                        
+                        // Immediately process inner instructions for correct ordering
+                        if let Some(inner_instructions) = inner_instructions {
+                            for (inner_index, inner_instruction) in inner_instructions.instructions.iter().enumerate() {
+                                let inner_accounts = &inner_instruction.accounts;
+                                let data = &inner_instruction.data;
+                                let instruction = yellowstone_grpc_proto::prelude::CompiledInstruction {
+                                    program_id_index: inner_instruction.program_id_index,
+                                    accounts: inner_accounts.to_vec(),
+                                    data: data.to_vec(),
+                                };
+                                self.parse_grpc_instruction(
+                                    &instruction,
+                                    &accounts,
+                                    signature,
+                                    slot,
+                                    block_time,
+                                    recv_us,
+                                    inner_instructions.index as i64,
+                                    Some(inner_index as i64),
+                                    bot_wallet,
+                                    transaction_index,
+                                    Some(&inner_instructions),
+                                    Arc::clone(&callback),
+                                )
+                                .await?;
+                            }
+                        }
                     }
                 }
             }
@@ -449,6 +477,27 @@ pub trait EventParser: Send + Sync {
                             Arc::clone(&callback),
                         )
                         .await?;
+                        
+                        // Immediately process inner instructions for correct ordering
+                        if let Some(inner_instructions) = inner_instructions {
+                            for (inner_index, inner_instruction) in inner_instructions.instructions.iter().enumerate() {
+                                self.parse_instruction(
+                                    &inner_instruction.instruction,
+                                    &accounts,
+                                    signature,
+                                    slot,
+                                    block_time,
+                                    recv_us,
+                                    index as i64,
+                                    Some(inner_index as i64),
+                                    bot_wallet,
+                                    transaction_index,
+                                    Some(&inner_instructions),
+                                    Arc::clone(&callback),
+                                )
+                                .await?;
+                            }
+                        }
                     }
                 }
             }
@@ -608,34 +657,6 @@ pub trait EventParser: Send + Sync {
                     callback.clone(),
                 )
                 .await?;
-
-                // 解析嵌套指令事件
-                for inner_instruction in inner_instructions_arc.iter() {
-                    for (index, instruction) in inner_instruction.instructions.iter().enumerate() {
-                        let accounts = &instruction.accounts;
-                        let data = &instruction.data;
-                        let instruction = yellowstone_grpc_proto::prelude::CompiledInstruction {
-                            program_id_index: instruction.program_id_index,
-                            accounts: accounts.to_vec(),
-                            data: data.to_vec(),
-                        };
-                        self.parse_grpc_instruction(
-                            &instruction,
-                            &accounts_arc,
-                            signature,
-                            slot,
-                            block_time,
-                            recv_us,
-                            inner_instruction.index as i64,
-                            Some(index as i64),
-                            bot_wallet,
-                            transaction_index,
-                            Some(&inner_instruction),
-                            callback.clone(),
-                        )
-                        .await?;
-                    }
-                }
             }
         }
 
@@ -749,27 +770,6 @@ pub trait EventParser: Send + Sync {
             callback.clone(),
         )
         .await?;
-
-        // 解析嵌套指令事件
-        for inner_instruction in inner_instructions_arc.iter() {
-            for (index, instruction) in inner_instruction.instructions.iter().enumerate() {
-                self.parse_instruction(
-                    &instruction.instruction,
-                    &accounts_arc,
-                    signature,
-                    Some(slot),
-                    block_time,
-                    recv_us,
-                    inner_instruction.index as i64,
-                    Some(index as i64),
-                    bot_wallet,
-                    transaction_index,
-                    Some(&inner_instruction),
-                    callback.clone(),
-                )
-                .await?;
-            }
-        }
 
         Ok(())
     }

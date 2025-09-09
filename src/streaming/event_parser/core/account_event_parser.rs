@@ -33,7 +33,7 @@ pub struct AccountEventParseConfig {
 
 /// 通用账户事件
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct CommonAccountEvent {
+pub struct TokenAccountEvent {
     pub metadata: EventMetadata,
     pub pubkey: Pubkey,
     pub executable: bool,
@@ -42,7 +42,7 @@ pub struct CommonAccountEvent {
     pub rent_epoch: u64,
     pub amount: Option<u64>,
 }
-impl_unified_event!(CommonAccountEvent,);
+impl_unified_event!(TokenAccountEvent,);
 
 /// Nonce account event
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
@@ -56,6 +56,20 @@ pub struct NonceAccountEvent {
     pub nonce: String,
 }
 impl_unified_event!(NonceAccountEvent,);
+
+/// Nonce account event
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TokenInfoEvent {
+    pub metadata: EventMetadata,
+    pub pubkey: Pubkey,
+    pub executable: bool,
+    pub lamports: u64,
+    pub owner: Pubkey,
+    pub rent_epoch: u64,
+    pub supply: u64,
+    pub decimals: u8,
+}
+impl_unified_event!(TokenInfoEvent,);
 
 /// 账户事件解析器
 pub type AccountEventParserFn =
@@ -209,12 +223,12 @@ impl AccountEventParser {
         }
 
         if event_type_filter.is_none()
-            || event_type_filter.unwrap().include.contains(&EventType::AccountNonce)
+            || event_type_filter.unwrap().include.contains(&EventType::NonceAccount)
         {
             let nonce_config = NONCE_CONFIG.get_or_init(|| AccountEventParseConfig {
                 program_id: Pubkey::default(),
                 protocol_type: ProtocolType::Common,
-                event_type: EventType::AccountNonce,
+                event_type: EventType::NonceAccount,
                 account_discriminator: &[1, 0, 0, 0, 1, 0, 0, 0],
                 account_parser: Self::parse_nonce_account_event,
             });
@@ -224,7 +238,7 @@ impl AccountEventParser {
         let common_config = COMMON_CONFIG.get_or_init(|| AccountEventParseConfig {
             program_id: Pubkey::default(),
             protocol_type: ProtocolType::Common,
-            event_type: EventType::AccountCommon,
+            event_type: EventType::TokenAccount,
             account_discriminator: &[],
             account_parser: Self::parse_token_account_event,
         });
@@ -272,8 +286,24 @@ impl AccountEventParser {
         account: &AccountPretty,
         metadata: EventMetadata,
     ) -> Option<Box<dyn UnifiedEvent>> {
+        use solana_program::program_pack::Pack;
+        use spl_token::state::Mint;
+        if let Ok(mint) = Mint::unpack_from_slice(&account.data) {
+            let mut event = TokenInfoEvent {
+                metadata,
+                pubkey: account.pubkey,
+                executable: account.executable,
+                lamports: account.lamports,
+                owner: account.owner,
+                rent_epoch: account.rent_epoch,
+                supply: mint.supply,
+                decimals: mint.decimals,
+            };
+            event.set_handle_us(elapsed_micros_since(account.recv_us));
+            return Some(Box::new(event));
+        }
         let info = Account::unpack(&account.data);
-        let mut event = CommonAccountEvent {
+        let mut event = TokenAccountEvent {
             metadata,
             pubkey: account.pubkey,
             executable: account.executable,

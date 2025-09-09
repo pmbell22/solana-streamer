@@ -1,11 +1,15 @@
-use solana_streamer_sdk::streaming::{
-    event_parser::{
-        common::{filter::EventTypeFilter, EventType},
-        UnifiedEvent,
+use solana_streamer_sdk::{
+    match_event,
+    streaming::{
+        event_parser::{
+            common::{filter::EventTypeFilter, EventType},
+            core::account_event_parser::TokenInfoEvent,
+            UnifiedEvent,
+        },
+        grpc::ClientConfig,
+        yellowstone_grpc::{AccountFilter, TransactionFilter},
+        YellowstoneGrpc,
     },
-    grpc::ClientConfig,
-    yellowstone_grpc::{AccountFilter, TransactionFilter},
-    YellowstoneGrpc,
 };
 
 #[tokio::main]
@@ -40,22 +44,23 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
     let transaction_filter =
         TransactionFilter { account_include, account_exclude, account_required };
 
-    let nonce_account = "use_your_nonce_account_here".to_string();
+    let account_to_listen = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v".to_string();
+
     // Listen to account data belonging to owner programs -> account event monitoring
-    let account_filter = AccountFilter { account: vec![nonce_account], owner: vec![] };
+    let account_filter = AccountFilter { account: vec![account_to_listen], owner: vec![] };
 
     // Event filtering
-    let event_type_filter = Some(EventTypeFilter { include: vec![EventType::NonceAccount] });
+    let event_type_filter = Some(EventTypeFilter { include: vec![EventType::TokenAccount] });
 
     println!("Starting to listen for events, press Ctrl+C to stop...");
     println!("Starting subscription...");
 
     grpc.subscribe_events_immediate(
-        protocols,
+        protocols.clone(),
         None,
-        transaction_filter,
-        account_filter,
-        event_type_filter,
+        transaction_filter.clone(),
+        account_filter.clone(),
+        event_type_filter.clone(),
         None,
         callback,
     )
@@ -76,6 +81,10 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
 
 fn create_event_callback() -> impl Fn(Box<dyn UnifiedEvent>) {
     |event: Box<dyn UnifiedEvent>| {
-        println!("🎉 Event received! {:?}", event);
+        match_event!(event, {
+            TokenInfoEvent => |e: TokenInfoEvent| {
+                println!("TokenInfoEvent: {:?}", e.decimals);
+            },
+        });
     }
 }

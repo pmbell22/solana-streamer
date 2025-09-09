@@ -3,7 +3,7 @@ use solana_streamer_sdk::{
     streaming::{
         event_parser::{
             common::EventType,
-            core::account_event_parser::CommonAccountEvent,
+            core::account_event_parser::{TokenInfoEvent, NonceAccountEvent, TokenAccountEvent},
             protocols::{
                 bonk::{
                     parser::BONK_PROGRAM_ID, BonkGlobalConfigAccountEvent, BonkMigrateToAmmEvent,
@@ -289,8 +289,14 @@ fn create_event_callback() -> impl Fn(Box<dyn UnifiedEvent>) {
             RaydiumCpmmPoolStateAccountEvent => |e: RaydiumCpmmPoolStateAccountEvent| {
                 println!("RaydiumCpmmPoolStateAccountEvent: {e:?}");
             },
-            CommonAccountEvent => |e: CommonAccountEvent| {
-                println!("CommonAccountEvent: {e:?}");
+            TokenAccountEvent => |e: TokenAccountEvent| {
+                println!("TokenAccountEvent: {e:?}");
+            },
+            NonceAccountEvent => |e: NonceAccountEvent| {
+                println!("NonceAccountEvent: {e:?}");
+            },
+            TokenInfoEvent => |e: TokenInfoEvent| {
+                println!("TokenInfoEvent: {e:?}");
             },
         });
     }

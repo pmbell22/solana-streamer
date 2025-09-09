@@ -39,6 +39,7 @@ impl RaydiumAmmV4EventParser {
                 event_type: EventType::RaydiumAmmV4SwapBaseIn,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_swap_base_input_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_AMM_V4_PROGRAM_ID,
@@ -48,6 +49,7 @@ impl RaydiumAmmV4EventParser {
                 event_type: EventType::RaydiumAmmV4SwapBaseOut,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_swap_base_output_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_AMM_V4_PROGRAM_ID,
@@ -57,6 +59,7 @@ impl RaydiumAmmV4EventParser {
                 event_type: EventType::RaydiumAmmV4Deposit,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_deposit_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_AMM_V4_PROGRAM_ID,
@@ -66,6 +69,7 @@ impl RaydiumAmmV4EventParser {
                 event_type: EventType::RaydiumAmmV4Initialize2,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_initialize2_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_AMM_V4_PROGRAM_ID,
@@ -75,6 +79,7 @@ impl RaydiumAmmV4EventParser {
                 event_type: EventType::RaydiumAmmV4Withdraw,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_withdraw_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_AMM_V4_PROGRAM_ID,
@@ -84,6 +89,7 @@ impl RaydiumAmmV4EventParser {
                 event_type: EventType::RaydiumAmmV4WithdrawPnl,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_withdraw_pnl_instruction),
+                requires_inner_instruction: false,
             },
         ];
 

@@ -41,6 +41,7 @@ impl BonkEventParser {
                 event_type: EventType::BonkBuyExactIn,
                 inner_instruction_parser: Some(Self::parse_trade_inner_instruction),
                 instruction_parser: Some(Self::parse_buy_exact_in_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: BONK_PROGRAM_ID,
@@ -50,6 +51,7 @@ impl BonkEventParser {
                 event_type: EventType::BonkBuyExactOut,
                 inner_instruction_parser: Some(Self::parse_trade_inner_instruction),
                 instruction_parser: Some(Self::parse_buy_exact_out_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: BONK_PROGRAM_ID,
@@ -59,6 +61,7 @@ impl BonkEventParser {
                 event_type: EventType::BonkSellExactIn,
                 inner_instruction_parser: Some(Self::parse_trade_inner_instruction),
                 instruction_parser: Some(Self::parse_sell_exact_in_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: BONK_PROGRAM_ID,
@@ -68,6 +71,7 @@ impl BonkEventParser {
                 event_type: EventType::BonkSellExactOut,
                 inner_instruction_parser: Some(Self::parse_trade_inner_instruction),
                 instruction_parser: Some(Self::parse_sell_exact_out_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: BONK_PROGRAM_ID,
@@ -77,6 +81,7 @@ impl BonkEventParser {
                 event_type: EventType::BonkInitialize,
                 inner_instruction_parser: Some(Self::parse_pool_create_inner_instruction),
                 instruction_parser: Some(Self::parse_initialize_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: BONK_PROGRAM_ID,
@@ -86,6 +91,7 @@ impl BonkEventParser {
                 event_type: EventType::BonkInitializeV2,
                 inner_instruction_parser: Some(Self::parse_pool_create_inner_instruction),
                 instruction_parser: Some(Self::parse_initialize_v2_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: BONK_PROGRAM_ID,
@@ -95,6 +101,7 @@ impl BonkEventParser {
                 event_type: EventType::BonkMigrateToAmm,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_migrate_to_amm_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: BONK_PROGRAM_ID,
@@ -104,6 +111,7 @@ impl BonkEventParser {
                 event_type: EventType::BonkMigrateToCpswap,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_migrate_to_cpswap_instruction),
+                requires_inner_instruction: false,
             },
         ];
 

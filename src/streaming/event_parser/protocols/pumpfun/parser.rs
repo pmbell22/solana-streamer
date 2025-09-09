@@ -40,6 +40,7 @@ impl PumpFunEventParser {
                 event_type: EventType::PumpFunCreateToken,
                 inner_instruction_parser: Some(Self::parse_create_token_inner_instruction),
                 instruction_parser: Some(Self::parse_create_token_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: PUMPFUN_PROGRAM_ID,
@@ -49,6 +50,7 @@ impl PumpFunEventParser {
                 event_type: EventType::PumpFunBuy,
                 inner_instruction_parser: Some(Self::parse_trade_inner_instruction),
                 instruction_parser: Some(Self::parse_buy_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: PUMPFUN_PROGRAM_ID,
@@ -58,6 +60,7 @@ impl PumpFunEventParser {
                 event_type: EventType::PumpFunSell,
                 inner_instruction_parser: Some(Self::parse_trade_inner_instruction),
                 instruction_parser: Some(Self::parse_sell_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: PUMPFUN_PROGRAM_ID,
@@ -67,6 +70,8 @@ impl PumpFunEventParser {
                 event_type: EventType::PumpFunMigrate,
                 inner_instruction_parser: Some(Self::parse_migrate_inner_instruction),
                 instruction_parser: Some(Self::parse_migrate_instruction),
+                // Failed migrations lack inner instruction data (typically "Bonding curve already migrated")
+                requires_inner_instruction: true,
             },
         ];
 

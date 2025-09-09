@@ -39,6 +39,7 @@ impl RaydiumCpmmEventParser {
                 event_type: EventType::RaydiumCpmmSwapBaseInput,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_swap_base_input_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_CPMM_PROGRAM_ID,
@@ -48,6 +49,7 @@ impl RaydiumCpmmEventParser {
                 event_type: EventType::RaydiumCpmmSwapBaseOutput,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_swap_base_output_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_CPMM_PROGRAM_ID,
@@ -57,6 +59,7 @@ impl RaydiumCpmmEventParser {
                 event_type: EventType::RaydiumCpmmDeposit,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_deposit_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_CPMM_PROGRAM_ID,
@@ -66,6 +69,7 @@ impl RaydiumCpmmEventParser {
                 event_type: EventType::RaydiumCpmmInitialize,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_initialize_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_CPMM_PROGRAM_ID,
@@ -75,6 +79,7 @@ impl RaydiumCpmmEventParser {
                 event_type: EventType::RaydiumCpmmWithdraw,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_withdraw_instruction),
+                requires_inner_instruction: false,
             },
         ];
 

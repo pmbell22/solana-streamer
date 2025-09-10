@@ -77,6 +77,9 @@
 - **Account State Monitoring**: Real-time monitoring of protocol account states and configuration changes
 - **Transaction & Account Event Filtering**: Separate filtering for transaction events and account state changes
 - **Dynamic Subscription Management**: Runtime filter updates without reconnection, enabling adaptive monitoring strategies
+- **Multi-Filter Support**: Support for multiple transaction and account filters in a single subscription
+- **Advanced Account Filtering**: Memcmp filters for precise account data matching and monitoring
+- **Token2022 Support**: Enhanced support for SPL Token 2022 with extended state parsing
 
 ### Performance & Optimization
 - **High Performance**: Optimized for low-latency event processing
@@ -185,6 +188,7 @@ let config = StreamClientConfig {
 | Dynamic Subscription Management | `dynamic_subscription` | Update filters at runtime | `cargo run --example dynamic_subscription` | [examples/dynamic_subscription.rs](examples/dynamic_subscription.rs) |
 | Token Balance Monitoring | `token_balance_listen_example` | Monitor specific token account balance changes | `cargo run --example token_balance_listen_example` | [examples/token_balance_listen_example.rs](examples/token_balance_listen_example.rs) |
 | Nonce Account Monitoring | `nonce_listen_example` | Track nonce account state changes | `cargo run --example nonce_listen_example` | [examples/nonce_listen_example.rs](examples/nonce_listen_example.rs) |
+| PumpSwap Pool Account Monitoring | `pumpswap_pool_account_listen_example` | Monitor PumpSwap pool accounts using memcmp filters | `cargo run --example pumpswap_pool_account_listen_example` | [examples/pumpswap_pool_account_listen_example.rs](examples/pumpswap_pool_account_listen_example.rs) |
 
 ### Event Filtering
 
@@ -252,15 +256,16 @@ Update subscription filters at runtime without reconnecting to the stream.
 ```rust
 // Update filters on existing subscription
 grpc.update_subscription(
-    TransactionFilter {
+    vec![TransactionFilter {
         account_include: vec!["new_program_id".to_string()],
         account_exclude: vec![],
         account_required: vec![],
-    },
-    AccountFilter {
+    }],
+    vec![AccountFilter {
         account: vec![],
         owner: vec![],
-    },
+        filters: vec![],
+    }],
 ).await?;
 ```
 

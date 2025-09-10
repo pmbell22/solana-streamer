@@ -77,6 +77,9 @@
 - **账户状态监控**: 实时监控协议账户状态和配置变更
 - **交易与账户事件过滤**: 分别过滤交易事件和账户状态变化
 - **动态订阅管理**: 运行时过滤器更新而无需重新连接，支持自适应监控策略
+- **多重过滤器支持**: 在单个订阅中支持多个交易和账户过滤器
+- **高级账户过滤**: 使用 memcmp 过滤器进行精确的账户数据匹配和监控
+- **Token2022 支持**: 增强对 SPL Token 2022 的支持，包含扩展状态解析
 
 ### 性能与优化
 - **高性能**: 针对低延迟事件处理进行优化
@@ -185,6 +188,7 @@ let config = StreamClientConfig {
 | 动态订阅管理 | `dynamic_subscription` | 运行时更新过滤器 | `cargo run --example dynamic_subscription` | [examples/dynamic_subscription.rs](examples/dynamic_subscription.rs) |
 | 代币余额监控 | `token_balance_listen_example` | 监控特定代币账户余额变化 | `cargo run --example token_balance_listen_example` | [examples/token_balance_listen_example.rs](examples/token_balance_listen_example.rs) |
 | Nonce 账户监控 | `nonce_listen_example` | 跟踪 nonce 账户状态变化 | `cargo run --example nonce_listen_example` | [examples/nonce_listen_example.rs](examples/nonce_listen_example.rs) |
+| PumpSwap 池账户监控 | `pumpswap_pool_account_listen_example` | 使用 memcmp 过滤器监控 PumpSwap 池账户 | `cargo run --example pumpswap_pool_account_listen_example` | [examples/pumpswap_pool_account_listen_example.rs](examples/pumpswap_pool_account_listen_example.rs) |
 
 ### 事件过滤
 
@@ -252,15 +256,16 @@ let event_type_filter = Some(EventTypeFilter {
 ```rust
 // 在现有订阅上更新过滤器
 grpc.update_subscription(
-    TransactionFilter {
+    vec![TransactionFilter {
         account_include: vec!["new_program_id".to_string()],
         account_exclude: vec![],
         account_required: vec![],
-    },
-    AccountFilter {
+    }],
+    vec![AccountFilter {
         account: vec![],
         owner: vec![],
-    },
+        filters: vec![],
+    }],
 ).await?;
 ```
 

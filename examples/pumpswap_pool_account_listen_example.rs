@@ -1,15 +1,23 @@
+use std::str::FromStr;
+
+use solana_sdk::pubkey::Pubkey;
 use solana_streamer_sdk::{
     match_event,
     streaming::{
         event_parser::{
             common::{filter::EventTypeFilter, EventType},
-            core::account_event_parser::TokenInfoEvent,
+            core::account_event_parser::TokenAccountEvent,
             UnifiedEvent,
         },
         grpc::ClientConfig,
         yellowstone_grpc::{AccountFilter, TransactionFilter},
         YellowstoneGrpc,
     },
+};
+use yellowstone_grpc_proto::geyser::{
+    subscribe_request_filter_accounts_filter::Filter,
+    subscribe_request_filter_accounts_filter_memcmp::Data, SubscribeRequestFilterAccountsFilter,
+    SubscribeRequestFilterAccountsFilterMemcmp,
 };
 
 #[tokio::main]
@@ -44,11 +52,31 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
     let transaction_filter =
         TransactionFilter { account_include, account_exclude, account_required };
 
-    let account_to_listen = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v".to_string();
+    // Pump.fun AMM (PUMP-USDC) Market
+    let pump_usdc = Pubkey::from_str("2uF4Xh61rDwxnG9woyxsVQP7zuA6kLFpb3NvnRQeoiSd").unwrap();
+    let wsol_deepseekai = Pubkey::from_str("BJAjivuMVANjpRWtrRfcxzGhnMSywBN19Sa4jAzWxXDx").unwrap();
 
     // Listen to account data belonging to owner programs -> account event monitoring
-    let account_filter =
-        AccountFilter { account: vec![account_to_listen], owner: vec![], filters: vec![] };
+    let pump_usdc_account_filter = AccountFilter {
+        account: vec![],
+        owner: vec![],
+        filters: vec![SubscribeRequestFilterAccountsFilter {
+            filter: Some(Filter::Memcmp(SubscribeRequestFilterAccountsFilterMemcmp {
+                offset: 32,
+                data: Some(Data::Bytes(pump_usdc.to_bytes().to_vec())),
+            })),
+        }],
+    };
+    let wsol_deepseekai_account_filter = AccountFilter {
+        account: vec![],
+        owner: vec![],
+        filters: vec![SubscribeRequestFilterAccountsFilter {
+            filter: Some(Filter::Memcmp(SubscribeRequestFilterAccountsFilterMemcmp {
+                offset: 32,
+                data: Some(Data::Bytes(wsol_deepseekai.to_bytes().to_vec())),
+            })),
+        }],
+    };
 
     // Event filtering
     let event_type_filter = Some(EventTypeFilter { include: vec![EventType::TokenAccount] });
@@ -60,7 +88,7 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
         protocols.clone(),
         None,
         vec![transaction_filter.clone()],
-        vec![account_filter.clone()],
+        vec![pump_usdc_account_filter.clone(), wsol_deepseekai_account_filter.clone()],
         event_type_filter.clone(),
         None,
         callback,
@@ -83,8 +111,8 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
 fn create_event_callback() -> impl Fn(Box<dyn UnifiedEvent>) {
     |event: Box<dyn UnifiedEvent>| {
         match_event!(event, {
-            TokenInfoEvent => |e: TokenInfoEvent| {
-                println!("TokenInfoEvent: {:?}", e.decimals);
+            TokenAccountEvent => |e: TokenAccountEvent| {
+                println!("TokenAccount: {:?} amount: {:?}", e.pubkey, e.amount);
             },
         });
     }

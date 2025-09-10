@@ -42,7 +42,8 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
 
     let nonce_account = "use_your_nonce_account_here".to_string();
     // Listen to account data belonging to owner programs -> account event monitoring
-    let account_filter = AccountFilter { account: vec![nonce_account], owner: vec![] };
+    let account_filter =
+        AccountFilter { account: vec![nonce_account], owner: vec![], filters: vec![] };
 
     // Event filtering
     let event_type_filter = Some(EventTypeFilter { include: vec![EventType::NonceAccount] });
@@ -53,8 +54,8 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
     grpc.subscribe_events_immediate(
         protocols,
         None,
-        transaction_filter,
-        account_filter,
+        vec![transaction_filter],
+        vec![account_filter],
         event_type_filter,
         None,
         callback,

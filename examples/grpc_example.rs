@@ -3,7 +3,7 @@ use solana_streamer_sdk::{
     streaming::{
         event_parser::{
             common::EventType,
-            core::account_event_parser::{TokenInfoEvent, NonceAccountEvent, TokenAccountEvent},
+            core::account_event_parser::{NonceAccountEvent, TokenAccountEvent, TokenInfoEvent},
             protocols::{
                 bonk::{
                     parser::BONK_PROGRAM_ID, BonkGlobalConfigAccountEvent, BonkMigrateToAmmEvent,
@@ -105,7 +105,7 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Listen to account data belonging to owner programs -> account event monitoring
-    let account_filter = AccountFilter { account: vec![], owner: account_include.clone() };
+    let account_filter = AccountFilter { account: vec![], owner: account_include.clone(), filters: vec![] };
 
     // Event filtering
     // No event filtering, includes all events
@@ -121,8 +121,8 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
     grpc.subscribe_events_immediate(
         protocols,
         None,
-        transaction_filter,
-        account_filter,
+        vec![transaction_filter],
+        vec![account_filter],
         event_type_filter,
         None,
         callback,

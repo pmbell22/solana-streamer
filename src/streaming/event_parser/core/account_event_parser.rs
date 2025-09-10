@@ -1,12 +1,3 @@
-use std::collections::HashMap;
-use std::sync::OnceLock;
-
-use serde::{Deserialize, Serialize};
-use solana_account_decoder::parse_nonce::parse_nonce;
-use solana_sdk::program_pack::Pack;
-use solana_sdk::pubkey::Pubkey;
-use spl_token::state::Account;
-
 use crate::impl_unified_event;
 use crate::streaming::common::SimdUtils;
 use crate::streaming::event_parser::common::filter::EventTypeFilter;
@@ -20,8 +11,17 @@ use crate::streaming::event_parser::protocols::raydium_clmm::parser::RAYDIUM_CLM
 use crate::streaming::event_parser::protocols::raydium_cpmm::parser::RAYDIUM_CPMM_PROGRAM_ID;
 use crate::streaming::event_parser::Protocol;
 use crate::streaming::grpc::AccountPretty;
-
-use spl_token::state::Mint;
+use serde::{Deserialize, Serialize};
+use solana_account_decoder::parse_nonce::parse_nonce;
+use solana_sdk::program_pack::Pack;
+use solana_sdk::pubkey::Pubkey;
+use spl_token::state::{Account, Mint};
+use spl_token_2022::{
+    extension::StateWithExtensions,
+    state::{Account as Account2022, Mint as Mint2022},
+};
+use std::collections::HashMap;
+use std::sync::OnceLock;
 
 /// 通用事件解析器配置
 #[derive(Debug, Clone)]
@@ -295,6 +295,7 @@ impl AccountEventParser {
         let lamports = account.lamports;
         let owner = account.owner;
         let rent_epoch = account.rent_epoch;
+        // Spl Token Mint
         if account.data.len() >= Mint::LEN {
             if let Ok(mint) = Mint::unpack_from_slice(&account.data) {
                 let mut event = TokenInfoEvent {
@@ -312,7 +313,32 @@ impl AccountEventParser {
                 return Some(Box::new(event));
             }
         }
-        let amount = Account::unpack(&account.data).ok().map(|info| info.amount);
+        // Spl Token2022 Mint
+        if account.data.len() >= Account2022::LEN {
+            if let Ok(mint) = StateWithExtensions::<Mint2022>::unpack(&account.data) {
+                let mut event = TokenInfoEvent {
+                    metadata,
+                    pubkey,
+                    executable,
+                    lamports,
+                    owner,
+                    rent_epoch,
+                    supply: mint.base.supply,
+                    decimals: mint.base.decimals,
+                };
+                let recv_delta = elapsed_micros_since(account.recv_us);
+                event.set_handle_us(recv_delta);
+                return Some(Box::new(event));
+            }
+        }
+        let amount = if account.owner == spl_token_2022::ID {
+            StateWithExtensions::<Account2022>::unpack(&account.data)
+                .ok()
+                .map(|info| info.base.amount)
+        } else {
+            Account::unpack(&account.data).ok().map(|info| info.amount)
+        };
+
         let mut event = TokenAccountEvent {
             metadata,
             pubkey,

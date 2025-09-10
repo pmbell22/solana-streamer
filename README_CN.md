@@ -104,14 +104,14 @@ git clone https://github.com/0xfnzero/solana-streamer
 
 ```toml
 # 添加到您的 Cargo.toml
-solana-streamer-sdk = { path = "./solana-streamer", version = "0.4.5" }
+solana-streamer-sdk = { path = "./solana-streamer", version = "0.4.6" }
 ```
 
 ### 使用 crates.io
 
 ```toml
 # 添加到您的 Cargo.toml
-solana-streamer-sdk = "0.4.5"
+solana-streamer-sdk = "0.4.6"
 ```
 
 ## ⚙️ 配置系统

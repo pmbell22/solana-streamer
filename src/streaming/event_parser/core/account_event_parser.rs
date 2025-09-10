@@ -21,6 +21,8 @@ use crate::streaming::event_parser::protocols::raydium_cpmm::parser::RAYDIUM_CPM
 use crate::streaming::event_parser::Protocol;
 use crate::streaming::grpc::AccountPretty;
 
+use spl_token::state::Mint;
+
 /// 通用事件解析器配置
 #[derive(Debug, Clone)]
 pub struct AccountEventParseConfig {
@@ -286,43 +288,34 @@ impl AccountEventParser {
         account: &AccountPretty,
         metadata: EventMetadata,
     ) -> Option<Box<dyn UnifiedEvent>> {
-        use solana_program::program_pack::Pack;
-        use spl_token::state::Mint;
-        match Mint::unpack_from_slice(&account.data) {
-            Ok(mint) => {
+        let pubkey = account.pubkey;
+        let executable = account.executable;
+        let lamports = account.lamports;
+        let owner = account.owner;
+        let rent_epoch = account.rent_epoch;
+        if account.data.len() >= Mint::LEN {
+            if let Ok(mint) = Mint::unpack_from_slice(&account.data) {
                 let mut event = TokenInfoEvent {
                     metadata,
-                    pubkey: account.pubkey,
-                    executable: account.executable,
-                    lamports: account.lamports,
-                    owner: account.owner,
-                    rent_epoch: account.rent_epoch,
+                    pubkey,
+                    executable,
+                    lamports,
+                    owner,
+                    rent_epoch,
                     supply: mint.supply,
                     decimals: mint.decimals,
                 };
-                event.set_handle_us(elapsed_micros_since(account.recv_us));
-                return Some(Box::new(event));
-            }
-            Err(_) => {
-                let mut event = TokenAccountEvent {
-                    metadata,
-                    pubkey: account.pubkey,
-                    executable: account.executable,
-                    lamports: account.lamports,
-                    owner: account.owner,
-                    rent_epoch: account.rent_epoch,
-                    amount: None,
-                };
-                match Account::unpack(&account.data) {
-                    Ok(info) => {
-                        event.amount = Some(info.amount);
-                    }
-                    Err(_) => {}
-                }
-                event.set_handle_us(elapsed_micros_since(account.recv_us));
+                let recv_delta = elapsed_micros_since(account.recv_us);
+                event.set_handle_us(recv_delta);
                 return Some(Box::new(event));
             }
         }
+        let amount = Account::unpack(&account.data).ok().map(|info| info.amount);
+        let mut event =
+            TokenAccountEvent { metadata, pubkey, executable, lamports, owner, rent_epoch, amount };
+        let recv_delta = elapsed_micros_since(account.recv_us);
+        event.set_handle_us(recv_delta);
+        Some(Box::new(event))
     }
 
     pub fn parse_nonce_account_event(

@@ -288,32 +288,41 @@ impl AccountEventParser {
     ) -> Option<Box<dyn UnifiedEvent>> {
         use solana_program::program_pack::Pack;
         use spl_token::state::Mint;
-        if let Ok(mint) = Mint::unpack_from_slice(&account.data) {
-            let mut event = TokenInfoEvent {
-                metadata,
-                pubkey: account.pubkey,
-                executable: account.executable,
-                lamports: account.lamports,
-                owner: account.owner,
-                rent_epoch: account.rent_epoch,
-                supply: mint.supply,
-                decimals: mint.decimals,
-            };
-            event.set_handle_us(elapsed_micros_since(account.recv_us));
-            return Some(Box::new(event));
+        match Mint::unpack_from_slice(&account.data) {
+            Ok(mint) => {
+                let mut event = TokenInfoEvent {
+                    metadata,
+                    pubkey: account.pubkey,
+                    executable: account.executable,
+                    lamports: account.lamports,
+                    owner: account.owner,
+                    rent_epoch: account.rent_epoch,
+                    supply: mint.supply,
+                    decimals: mint.decimals,
+                };
+                event.set_handle_us(elapsed_micros_since(account.recv_us));
+                return Some(Box::new(event));
+            }
+            Err(_) => {
+                let mut event = TokenAccountEvent {
+                    metadata,
+                    pubkey: account.pubkey,
+                    executable: account.executable,
+                    lamports: account.lamports,
+                    owner: account.owner,
+                    rent_epoch: account.rent_epoch,
+                    amount: None,
+                };
+                match Account::unpack(&account.data) {
+                    Ok(info) => {
+                        event.amount = Some(info.amount);
+                    }
+                    Err(_) => {}
+                }
+                event.set_handle_us(elapsed_micros_since(account.recv_us));
+                return Some(Box::new(event));
+            }
         }
-        let info = Account::unpack(&account.data);
-        let mut event = TokenAccountEvent {
-            metadata,
-            pubkey: account.pubkey,
-            executable: account.executable,
-            lamports: account.lamports,
-            owner: account.owner,
-            rent_epoch: account.rent_epoch,
-            amount: if let Ok(info) = info { Some(info.amount) } else { None },
-        };
-        event.set_handle_us(elapsed_micros_since(account.recv_us));
-        return Some(Box::new(event));
     }
 
     pub fn parse_nonce_account_event(

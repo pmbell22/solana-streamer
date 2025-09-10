@@ -189,6 +189,7 @@ let config = StreamClientConfig {
 | Token Balance Monitoring | `token_balance_listen_example` | Monitor specific token account balance changes | `cargo run --example token_balance_listen_example` | [examples/token_balance_listen_example.rs](examples/token_balance_listen_example.rs) |
 | Nonce Account Monitoring | `nonce_listen_example` | Track nonce account state changes | `cargo run --example nonce_listen_example` | [examples/nonce_listen_example.rs](examples/nonce_listen_example.rs) |
 | PumpSwap Pool Account Monitoring | `pumpswap_pool_account_listen_example` | Monitor PumpSwap pool accounts using memcmp filters | `cargo run --example pumpswap_pool_account_listen_example` | [examples/pumpswap_pool_account_listen_example.rs](examples/pumpswap_pool_account_listen_example.rs) |
+| Mint ATA Account Monitoring | `mint_all_ata_account_listen_example` | Monitor all associated token accounts for specific mints using memcmp filters | `cargo run --example mint_all_ata_account_listen_example` | [examples/mint_all_ata_account_listen_example.rs](examples/mint_all_ata_account_listen_example.rs) |
 
 ### Event Filtering
 

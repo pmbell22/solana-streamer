@@ -189,6 +189,7 @@ let config = StreamClientConfig {
 | 代币余额监控 | `token_balance_listen_example` | 监控特定代币账户余额变化 | `cargo run --example token_balance_listen_example` | [examples/token_balance_listen_example.rs](examples/token_balance_listen_example.rs) |
 | Nonce 账户监控 | `nonce_listen_example` | 跟踪 nonce 账户状态变化 | `cargo run --example nonce_listen_example` | [examples/nonce_listen_example.rs](examples/nonce_listen_example.rs) |
 | PumpSwap 池账户监控 | `pumpswap_pool_account_listen_example` | 使用 memcmp 过滤器监控 PumpSwap 池账户 | `cargo run --example pumpswap_pool_account_listen_example` | [examples/pumpswap_pool_account_listen_example.rs](examples/pumpswap_pool_account_listen_example.rs) |
+| Mint 相关账户监控 | `mint_all_ata_account_listen_example` | 使用 memcmp 过滤器监控特定代币的所有关联代币账户 | `cargo run --example mint_all_ata_account_listen_example` | [examples/mint_all_ata_account_listen_example.rs](examples/mint_all_ata_account_listen_example.rs) |
 
 ### 事件过滤
 

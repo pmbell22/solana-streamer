@@ -1,37 +1,70 @@
-# Solana Streamer
-[中文](https://github.com/0xfnzero/solana-streamer/blob/main/README_CN.md) | [English](https://github.com/0xfnzero/solana-streamer/blob/main/README.md) | [Telegram](https://t.me/fnzero_group)
+<div align="center">
+    <h1>🌊 Solana Streamer</h1>
+    <h3><em>从 Solana DEX 交易程序实时流式传输事件。</em></h3>
+</div>
 
-一个轻量级的 Rust 库，用于从 Solana DEX 交易程序中实时流式传输事件。该库为 PumpFun、PumpSwap、Bonk 和 Raydium CPMM 协议提供高效的事件解析和订阅功能。
+<p align="center">
+    <strong>一个轻量级的 Rust 库，为 PumpFun、PumpSwap、Bonk 和 Raydium 协议提供高效的事件解析和订阅功能。</strong>
+</p>
 
-## 项目特性
+<p align="center">
+    <a href="README_CN.md">中文</a> | 
+    <a href="README.md">English</a> | 
+    <a href="https://fnzero.dev/">Website</a> |
+    <a href="https://t.me/fnzero_group">Telegram</a>
+</p>
 
-1. **实时事件流**: 订阅多个 Solana DEX 协议的实时交易事件
-2. **Yellowstone gRPC 支持**: 使用 Yellowstone gRPC 进行高性能事件订阅
-3. **ShredStream 支持**: 使用 ShredStream 协议进行替代事件流传输
-4. **多协议支持**: 
-   - **PumpFun**: 迷因币交易平台事件
-   - **PumpSwap**: PumpFun 的交换协议事件
-   - **Bonk**: 代币发布平台事件 (letsbonk.fun)
-   - **Raydium CPMM**: Raydium 集中池做市商事件
-   - **Raydium CLMM**: Raydium 集中流动性做市商事件
-   - **Raydium AMM V4**: Raydium 自动做市商 V4 事件
-5. **统一事件接口**: 在所有支持的协议中保持一致的事件处理
-6. **事件解析系统**: 自动解析和分类协议特定事件
-7. **账户状态监控**: 实时监控协议账户状态和配置变更
-8. **交易与账户事件过滤**: 分别过滤交易事件和账户状态变化
-9. **高性能**: 针对低延迟事件处理进行优化
-10. **批处理优化**: 批量处理事件以减少回调开销
-11. **性能监控**: 内置性能指标监控，包括事件处理速度等
-12. **内存优化**: 对象池和缓存机制减少内存分配
-13. **灵活配置系统**: 支持自定义批处理大小、背压策略、通道大小等参数
-14. **预设配置**: 提供高吞吐量、低延迟等预设配置，针对不同使用场景优化
-15. **背压处理**: 支持阻塞、丢弃等背压策略
-16. **运行时配置更新**: 支持在运行时动态更新配置参数
-17. **全函数性能监控**: 所有subscribe_events函数都支持性能监控，自动收集和报告性能指标
-18. **优雅关闭**: 支持编程式 stop() 方法进行干净的关闭
-19. **动态订阅管理**: 运行时过滤器更新而无需重新连接，支持自适应监控策略
+---
 
-## 安装
+## 目录
+
+- [🚀 项目特性](#-项目特性)
+- [⚡ 安装](#-安装)
+- [⚙️ 配置系统](#️-配置系统)
+- [📚 使用示例](#-使用示例)
+- [🔧 支持的协议](#-支持的协议)
+- [🌐 事件流服务](#-事件流服务)
+- [🏗️ 架构特性](#️-架构特性)
+- [📁 项目结构](#-项目结构)
+- [⚡ 性能考虑](#-性能考虑)
+- [📄 许可证](#-许可证)
+- [📞 联系方式](#-联系方式)
+- [⚠️ 重要注意事项](#️-重要注意事项)
+
+## 🚀 项目特性
+
+### 核心功能
+- **实时事件流**: 订阅多个 Solana DEX 协议的实时交易事件
+- **Yellowstone gRPC 支持**: 使用 Yellowstone gRPC 进行高性能事件订阅
+- **ShredStream 支持**: 使用 ShredStream 协议进行替代事件流传输
+- **统一事件接口**: 在所有支持的协议中保持一致的事件处理
+
+### 多协议支持
+- **PumpFun**: 迷因币交易平台事件
+- **PumpSwap**: PumpFun 的交换协议事件
+- **Bonk**: 代币发布平台事件 (letsbonk.fun)
+- **Raydium CPMM**: Raydium 集中池做市商事件
+- **Raydium CLMM**: Raydium 集中流动性做市商事件
+- **Raydium AMM V4**: Raydium 自动做市商 V4 事件
+
+### 高级功能
+- **事件解析系统**: 自动解析和分类协议特定事件
+- **账户状态监控**: 实时监控协议账户状态和配置变更
+- **交易与账户事件过滤**: 分别过滤交易事件和账户状态变化
+- **动态订阅管理**: 运行时过滤器更新而无需重新连接，支持自适应监控策略
+
+### 性能与优化
+- **高性能**: 针对低延迟事件处理进行优化
+- **批处理优化**: 批量处理事件以减少回调开销
+- **性能监控**: 内置性能指标监控，包括事件处理速度
+- **内存优化**: 对象池和缓存机制减少内存分配
+- **灵活配置系统**: 支持自定义批处理大小、背压策略、通道大小等参数
+- **预设配置**: 提供高吞吐量、低延迟等预设配置，针对不同使用场景优化
+- **背压处理**: 支持阻塞、丢弃等背压策略
+- **运行时配置更新**: 支持在运行时动态更新配置参数
+- **优雅关闭**: 支持编程式 stop() 方法进行干净的关闭
+
+## ⚡ 安装
 
 ### 直接克隆
 
@@ -56,7 +89,7 @@ solana-streamer-sdk = { path = "./solana-streamer", version = "0.4.5" }
 solana-streamer-sdk = "0.4.5"
 ```
 
-## 配置系统
+## ⚙️ 配置系统
 
 ### 预设配置
 
@@ -115,7 +148,7 @@ let config = StreamClientConfig {
 };
 ```
 
-## 使用示例
+## 📚 使用示例
 
 ### 使用示例概览表
 
@@ -213,7 +246,7 @@ grpc.update_subscription(
 
 注意：在同一客户端上多次尝试订阅会返回错误。
 
-## 支持的协议
+## 🔧 支持的协议
 
 - **PumpFun**: 主要迷因币交易平台
 - **PumpSwap**: PumpFun 的交换协议
@@ -222,12 +255,12 @@ grpc.update_subscription(
 - **Raydium CLMM**: Raydium 集中流动性做市商协议
 - **Raydium AMM V4**: Raydium 自动做市商 V4 协议
 
-## 事件流服务
+## 🌐 事件流服务
 
 - **Yellowstone gRPC**: 高性能 Solana 事件流
 - **ShredStream**: 替代事件流协议
 
-## 架构特性
+## 🏗️ 架构特性
 
 ### 统一事件接口
 
@@ -247,7 +280,7 @@ grpc.update_subscription(
 - **ShredStream 客户端**: 替代流实现
 - **高性能处理**: 优化的事件处理机制
 
-## 项目结构
+## 📁 项目结构
 
 ```
 src/
@@ -271,7 +304,7 @@ src/
 └── lib.rs            # 主库文件
 ```
 
-## 性能考虑
+## ⚡ 性能考虑
 
 1. **连接管理**: 正确处理连接生命周期和重连
 2. **事件过滤**: 使用协议过滤减少不必要的事件处理
@@ -281,16 +314,19 @@ src/
 6. **性能监控**: 启用性能监控以识别瓶颈和优化机会
 7. **优雅关闭**: 使用 stop() 方法进行干净关闭，并实现信号处理器以正确清理资源
 
-## 许可证
+---
+
+## 📄 许可证
 
 MIT 许可证
 
-## 联系方式
+## 📞 联系方式
 
-- 项目仓库: https://github.com/0xfnzero/solana-streamer
-- Telegram 群组: https://t.me/fnzero_group
+- **网站**: https://fnzero.dev/
+- **项目仓库**: https://github.com/0xfnzero/solana-streamer
+- **Telegram 群组**: https://t.me/fnzero_group
 
-## 重要注意事项
+## ⚠️ 重要注意事项
 
 1. **网络稳定性**: 确保稳定的网络连接以进行连续的事件流传输
 2. **速率限制**: 注意公共 gRPC 端点的速率限制

@@ -43,6 +43,7 @@ pub struct TokenAccountEvent {
     pub owner: Pubkey,
     pub rent_epoch: u64,
     pub amount: Option<u64>,
+    pub token_owner: Pubkey,
 }
 impl_unified_event!(TokenAccountEvent,);
 
@@ -56,6 +57,7 @@ pub struct NonceAccountEvent {
     pub owner: Pubkey,
     pub rent_epoch: u64,
     pub nonce: String,
+    pub authority: String,
 }
 impl_unified_event!(NonceAccountEvent,);
 
@@ -311,8 +313,16 @@ impl AccountEventParser {
             }
         }
         let amount = Account::unpack(&account.data).ok().map(|info| info.amount);
-        let mut event =
-            TokenAccountEvent { metadata, pubkey, executable, lamports, owner, rent_epoch, amount };
+        let mut event = TokenAccountEvent {
+            metadata,
+            pubkey,
+            executable,
+            lamports,
+            owner,
+            rent_epoch,
+            amount,
+            token_owner: account.owner,
+        };
         let recv_delta = elapsed_micros_since(account.recv_us);
         event.set_handle_us(recv_delta);
         Some(Box::new(event))
@@ -333,6 +343,7 @@ impl AccountEventParser {
                         owner: account.owner,
                         rent_epoch: account.rent_epoch,
                         nonce: details.blockhash,
+                        authority: details.authority,
                     };
                     event.set_handle_us(elapsed_micros_since(account.recv_us));
                     return Some(Box::new(event));

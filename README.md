@@ -1,37 +1,70 @@
-# Solana Streamer
-[中文](https://github.com/0xfnzero/solana-streamer/blob/main/README_CN.md) | [English](https://github.com/0xfnzero/solana-streamer/blob/main/README.md) | [Telegram](https://t.me/fnzero_group)
+<div align="center">
+    <h1>🌊 Solana Streamer</h1>
+    <h3><em>Real-time event streaming from Solana DEX trading programs.</em></h3>
+</div>
 
-A lightweight Rust library for real-time event streaming from Solana DEX trading programs. This library provides efficient event parsing and subscription capabilities for PumpFun, PumpSwap, Bonk, and Raydium CPMM protocols.
+<p align="center">
+    <strong>A lightweight Rust library providing efficient event parsing and subscription capabilities for PumpFun, PumpSwap, Bonk, and Raydium protocols.</strong>
+</p>
 
-## Project Features
+<p align="center">
+    <a href="README_CN.md">中文</a> | 
+    <a href="README.md">English</a> | 
+    <a href="https://fnzero.dev/">Website</a> |
+    <a href="https://t.me/fnzero_group">Telegram</a>
+</p>
 
-1. **Real-time Event Streaming**: Subscribe to live trading events from multiple Solana DEX protocols
-2. **Yellowstone gRPC Support**: High-performance event subscription using Yellowstone gRPC
-3. **ShredStream Support**: Alternative event streaming using ShredStream protocol
-4. **Multi-Protocol Support**: 
-   - **PumpFun**: Meme coin trading platform events
-   - **PumpSwap**: PumpFun's swap protocol events
-   - **Bonk**: Token launch platform events (letsbonk.fun)
-   - **Raydium CPMM**: Raydium's Concentrated Pool Market Maker events
-   - **Raydium CLMM**: Raydium's Concentrated Liquidity Market Maker events
-   - **Raydium AMM V4**: Raydium's Automated Market Maker V4 events
-5. **Unified Event Interface**: Consistent event handling across all supported protocols
-6. **Event Parsing System**: Automatic parsing and categorization of protocol-specific events
-7. **Account State Monitoring**: Real-time monitoring of protocol account states and configuration changes
-8. **Transaction & Account Event Filtering**: Separate filtering for transaction events and account state changes
-9. **High Performance**: Optimized for low-latency event processing
-10. **Batch Processing Optimization**: Batch processing events to reduce callback overhead
-11. **Performance Monitoring**: Built-in performance metrics monitoring, including event processing speed, etc.
-12. **Memory Optimization**: Object pooling and caching mechanisms to reduce memory allocations
-13. **Flexible Configuration System**: Support for custom batch sizes, backpressure strategies, channel sizes, and other parameters
-14. **Preset Configurations**: Provides high-throughput and low-latency preset configurations optimized for different use cases
-15. **Backpressure Handling**: Supports blocking and dropping backpressure strategies
-16. **Runtime Configuration Updates**: Supports dynamic configuration parameter updates at runtime
-17. **Full Function Performance Monitoring**: All subscribe_events functions support performance monitoring, automatically collecting and reporting performance metrics
-18. **Graceful Shutdown**: Support for programmatic stop() method for clean shutdown
-19. **Dynamic Subscription Management**: Runtime filter updates without reconnection, enabling adaptive monitoring strategies
+---
 
-## Installation
+## Table of Contents
+
+- [🚀 Project Features](#-project-features)
+- [⚡ Installation](#-installation)
+- [⚙️ Configuration System](#️-configuration-system)
+- [📚 Usage Examples](#-usage-examples)
+- [🔧 Supported Protocols](#-supported-protocols)
+- [🌐 Event Streaming Services](#-event-streaming-services)
+- [🏗️ Architecture Features](#️-architecture-features)
+- [📁 Project Structure](#-project-structure)
+- [⚡ Performance Considerations](#-performance-considerations)
+- [📄 License](#-license)
+- [📞 Contact](#-contact)
+- [⚠️ Important Notes](#️-important-notes)
+
+## 🚀 Project Features
+
+### Core Capabilities
+- **Real-time Event Streaming**: Subscribe to live trading events from multiple Solana DEX protocols
+- **Yellowstone gRPC Support**: High-performance event subscription using Yellowstone gRPC
+- **ShredStream Support**: Alternative event streaming using ShredStream protocol
+- **Unified Event Interface**: Consistent event handling across all supported protocols
+
+### Multi-Protocol Support
+- **PumpFun**: Meme coin trading platform events
+- **PumpSwap**: PumpFun's swap protocol events
+- **Bonk**: Token launch platform events (letsbonk.fun)
+- **Raydium CPMM**: Raydium's Concentrated Pool Market Maker events
+- **Raydium CLMM**: Raydium's Concentrated Liquidity Market Maker events
+- **Raydium AMM V4**: Raydium's Automated Market Maker V4 events
+
+### Advanced Features
+- **Event Parsing System**: Automatic parsing and categorization of protocol-specific events
+- **Account State Monitoring**: Real-time monitoring of protocol account states and configuration changes
+- **Transaction & Account Event Filtering**: Separate filtering for transaction events and account state changes
+- **Dynamic Subscription Management**: Runtime filter updates without reconnection, enabling adaptive monitoring strategies
+
+### Performance & Optimization
+- **High Performance**: Optimized for low-latency event processing
+- **Batch Processing Optimization**: Batch processing events to reduce callback overhead
+- **Performance Monitoring**: Built-in performance metrics monitoring, including event processing speed
+- **Memory Optimization**: Object pooling and caching mechanisms to reduce memory allocations
+- **Flexible Configuration System**: Support for custom batch sizes, backpressure strategies, channel sizes
+- **Preset Configurations**: High-throughput and low-latency preset configurations optimized for different use cases
+- **Backpressure Handling**: Supports blocking and dropping backpressure strategies
+- **Runtime Configuration Updates**: Dynamic configuration parameter updates at runtime
+- **Graceful Shutdown**: Support for programmatic stop() method for clean shutdown
+
+## ⚡ Installation
 
 ### Direct Clone
 
@@ -56,7 +89,7 @@ solana-streamer-sdk = { path = "./solana-streamer", version = "0.4.5" }
 solana-streamer-sdk = "0.4.5"
 ```
 
-## Configuration System
+## ⚙️ Configuration System
 
 ### Preset Configurations
 
@@ -115,7 +148,7 @@ let config = StreamClientConfig {
 };
 ```
 
-## Usage Examples
+## 📚 Usage Examples
 
 ### Usage Examples Summary Table
 
@@ -213,7 +246,7 @@ grpc.update_subscription(
 
 Note: Multiple subscription attempts on the same client return an error.
 
-## Supported Protocols
+## 🔧 Supported Protocols
 
 - **PumpFun**: Primary meme coin trading platform
 - **PumpSwap**: PumpFun's swap protocol
@@ -222,12 +255,12 @@ Note: Multiple subscription attempts on the same client return an error.
 - **Raydium CLMM**: Raydium's Concentrated Liquidity Market Maker protocol
 - **Raydium AMM V4**: Raydium's Automated Market Maker V4 protocol
 
-## Event Streaming Services
+## 🌐 Event Streaming Services
 
 - **Yellowstone gRPC**: High-performance Solana event streaming
 - **ShredStream**: Alternative event streaming protocol
 
-## Architecture Features
+## 🏗️ Architecture Features
 
 ### Unified Event Interface
 
@@ -247,7 +280,7 @@ Note: Multiple subscription attempts on the same client return an error.
 - **ShredStream Client**: Alternative streaming implementation
 - **Async Processing**: Non-blocking event handling
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 src/
@@ -272,16 +305,7 @@ src/
 └── main.rs           # Example program
 ```
 
-## License
-
-MIT License
-
-## Contact
-
-- Project Repository: https://github.com/0xfnzero/solana-streamer
-- Telegram Group: https://t.me/fnzero_group
-
-## Performance Considerations
+## ⚡ Performance Considerations
 
 1. **Connection Management**: Properly handle connection lifecycle and reconnection
 2. **Event Filtering**: Use protocol filtering to reduce unnecessary event processing
@@ -291,7 +315,19 @@ MIT License
 6. **Performance Monitoring**: Enable performance monitoring to identify bottlenecks and optimization opportunities
 7. **Graceful Shutdown**: Use the stop() method for clean shutdown and implement signal handlers for proper resource cleanup
 
-## Important Notes
+---
+
+## 📄 License
+
+MIT License
+
+## 📞 Contact
+
+- **Website**: https://fnzero.dev/
+- **Project Repository**: https://github.com/0xfnzero/solana-streamer
+- **Telegram Group**: https://t.me/fnzero_group
+
+## ⚠️ Important Notes
 
 1. **Network Stability**: Ensure stable network connection for continuous event streaming
 2. **Rate Limiting**: Be aware of rate limits on public gRPC endpoints

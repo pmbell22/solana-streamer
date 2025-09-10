@@ -8,6 +8,31 @@
 </p>
 
 <p align="center">
+    <a href="https://crates.io/crates/solana-streamer-sdk">
+        <img src="https://img.shields.io/crates/v/solana-streamer-sdk.svg" alt="Crates.io">
+    </a>
+    <a href="https://docs.rs/solana-streamer-sdk">
+        <img src="https://docs.rs/solana-streamer-sdk/badge.svg" alt="Documentation">
+    </a>
+    <a href="https://github.com/0xfnzero/solana-streamer/blob/main/LICENSE">
+        <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+    </a>
+    <a href="https://github.com/0xfnzero/solana-streamer">
+        <img src="https://img.shields.io/github/stars/0xfnzero/solana-streamer?style=social" alt="GitHub stars">
+    </a>
+    <a href="https://github.com/0xfnzero/solana-streamer/network">
+        <img src="https://img.shields.io/github/forks/0xfnzero/solana-streamer?style=social" alt="GitHub forks">
+    </a>
+</p>
+
+<p align="center">
+    <img src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" alt="Rust">
+    <img src="https://img.shields.io/badge/Solana-9945FF?style=for-the-badge&logo=solana&logoColor=white" alt="Solana">
+    <img src="https://img.shields.io/badge/Streaming-FF6B6B?style=for-the-badge&logo=livestream&logoColor=white" alt="Real-time Streaming">
+    <img src="https://img.shields.io/badge/gRPC-4285F4?style=for-the-badge&logo=grpc&logoColor=white" alt="gRPC">
+</p>
+
+<p align="center">
     <a href="README_CN.md">中文</a> | 
     <a href="README.md">English</a> | 
     <a href="https://fnzero.dev/">Website</a> |

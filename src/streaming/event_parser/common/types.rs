@@ -97,6 +97,7 @@ pub enum EventType {
     BonkSellExactOut,
     BonkInitialize,
     BonkInitializeV2,
+    BonkInitializeWithToken2022,
     BonkMigrateToAmm,
     BonkMigrateToCpswap,
 
@@ -187,6 +188,7 @@ impl fmt::Display for EventType {
             EventType::BonkSellExactOut => write!(f, "BonkSellExactOut"),
             EventType::BonkInitialize => write!(f, "BonkInitialize"),
             EventType::BonkInitializeV2 => write!(f, "BonkInitializeV2"),
+            EventType::BonkInitializeWithToken2022 => write!(f, "BonkInitializeWithToken2022"),
             EventType::BonkMigrateToAmm => write!(f, "BonkMigrateToAmm"),
             EventType::BonkMigrateToCpswap => write!(f, "BonkMigrateToCpswap"),
             EventType::RaydiumCpmmSwapBaseInput => write!(f, "RaydiumCpmmSwapBaseInput"),

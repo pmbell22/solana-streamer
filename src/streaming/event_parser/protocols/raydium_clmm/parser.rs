@@ -44,6 +44,7 @@ impl RaydiumClmmEventParser {
                 event_type: EventType::RaydiumClmmSwap,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_swap_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_CLMM_PROGRAM_ID,
@@ -53,6 +54,7 @@ impl RaydiumClmmEventParser {
                 event_type: EventType::RaydiumClmmSwapV2,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_swap_v2_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_CLMM_PROGRAM_ID,
@@ -62,6 +64,7 @@ impl RaydiumClmmEventParser {
                 event_type: EventType::RaydiumClmmClosePosition,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_close_position_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_CLMM_PROGRAM_ID,
@@ -71,6 +74,7 @@ impl RaydiumClmmEventParser {
                 event_type: EventType::RaydiumClmmDecreaseLiquidityV2,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_decrease_liquidity_v2_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_CLMM_PROGRAM_ID,
@@ -80,6 +84,7 @@ impl RaydiumClmmEventParser {
                 event_type: EventType::RaydiumClmmCreatePool,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_create_pool_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_CLMM_PROGRAM_ID,
@@ -89,6 +94,7 @@ impl RaydiumClmmEventParser {
                 event_type: EventType::RaydiumClmmIncreaseLiquidityV2,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_increase_liquidity_v2_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_CLMM_PROGRAM_ID,
@@ -98,6 +104,7 @@ impl RaydiumClmmEventParser {
                 event_type: EventType::RaydiumClmmOpenPositionWithToken22Nft,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_open_position_with_token_22_nft_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: RAYDIUM_CLMM_PROGRAM_ID,
@@ -107,6 +114,7 @@ impl RaydiumClmmEventParser {
                 event_type: EventType::RaydiumClmmOpenPositionV2,
                 inner_instruction_parser: None,
                 instruction_parser: Some(Self::parse_open_position_v2_instruction),
+                requires_inner_instruction: false,
             },
         ];
 

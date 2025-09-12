@@ -41,6 +41,7 @@ impl PumpSwapEventParser {
                 event_type: EventType::PumpSwapBuy,
                 inner_instruction_parser: Some(Self::parse_buy_inner_instruction),
                 instruction_parser: Some(Self::parse_buy_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: PUMPSWAP_PROGRAM_ID,
@@ -50,6 +51,7 @@ impl PumpSwapEventParser {
                 event_type: EventType::PumpSwapSell,
                 inner_instruction_parser: Some(Self::parse_sell_inner_instruction),
                 instruction_parser: Some(Self::parse_sell_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: PUMPSWAP_PROGRAM_ID,
@@ -59,6 +61,7 @@ impl PumpSwapEventParser {
                 event_type: EventType::PumpSwapCreatePool,
                 inner_instruction_parser: Some(Self::parse_create_pool_inner_instruction),
                 instruction_parser: Some(Self::parse_create_pool_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: PUMPSWAP_PROGRAM_ID,
@@ -68,6 +71,7 @@ impl PumpSwapEventParser {
                 event_type: EventType::PumpSwapDeposit,
                 inner_instruction_parser: Some(Self::parse_deposit_inner_instruction),
                 instruction_parser: Some(Self::parse_deposit_instruction),
+                requires_inner_instruction: false,
             },
             GenericEventParseConfig {
                 program_id: PUMPSWAP_PROGRAM_ID,
@@ -77,6 +81,7 @@ impl PumpSwapEventParser {
                 event_type: EventType::PumpSwapWithdraw,
                 inner_instruction_parser: Some(Self::parse_withdraw_inner_instruction),
                 instruction_parser: Some(Self::parse_withdraw_instruction),
+                requires_inner_instruction: false,
             },
         ];
 

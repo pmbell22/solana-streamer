@@ -891,6 +891,7 @@ pub struct GenericEventParseConfig {
     pub event_type: EventType,
     pub inner_instruction_parser: Option<InnerInstructionEventParser>,
     pub instruction_parser: Option<InstructionEventParser>,
+    pub requires_inner_instruction: bool,
 }
 
 /// 内联指令事件解析器
@@ -1214,6 +1215,12 @@ impl EventParser for GenericEventParser {
                     event.set_swap_data(swap_data);
                 }
             }
+            
+            // Skip events that require inner instruction data but don't have it
+            if config.requires_inner_instruction && inner_instruction_event.is_none() {
+                continue;
+            }
+            
             // 合并事件
             if let Some(inner_instruction_event) = inner_instruction_event {
                 event.merge(&*inner_instruction_event);
@@ -1349,6 +1356,12 @@ impl EventParser for GenericEventParser {
                     event.set_swap_data(swap_data);
                 }
             }
+            
+            // Skip events that require inner instruction data but don't have it
+            if config.requires_inner_instruction && inner_instruction_event.is_none() {
+                continue;
+            }
+            
             // 合并事件
             if let Some(inner_instruction_event) = inner_instruction_event {
                 event.merge(&*inner_instruction_event);

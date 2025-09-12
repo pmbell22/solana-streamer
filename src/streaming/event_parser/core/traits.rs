@@ -1026,6 +1026,18 @@ impl EventParser for GenericEventParser {
         if !SimdUtils::validate_instruction_data_simd(&inner_instruction.data, 16, 0) {
             return Vec::new();
         }
+        
+        // Check if the discriminator matches what we expect for this event type
+        let discriminator_len = config.inner_instruction_discriminator.len();
+        if inner_instruction.data.len() < discriminator_len {
+            return Vec::new();
+        }
+        
+        // Validate discriminator matches
+        if !inner_instruction.data[..discriminator_len].eq(config.inner_instruction_discriminator) {
+            return Vec::new();
+        }
+        
         let data = &inner_instruction.data[16..];
         let mut events = Vec::new();
         if let Some(event) = self.parse_inner_instruction_event(
@@ -1062,6 +1074,18 @@ impl EventParser for GenericEventParser {
         if !SimdUtils::validate_instruction_data_simd(&inner_instruction.data, 16, 0) {
             return Vec::new();
         }
+        
+        // Check if the discriminator matches what we expect for this event type
+        let discriminator_len = config.inner_instruction_discriminator.len();
+        if inner_instruction.data.len() < discriminator_len {
+            return Vec::new();
+        }
+        
+        // Validate discriminator matches
+        if !inner_instruction.data[..discriminator_len].eq(config.inner_instruction_discriminator) {
+            return Vec::new();
+        }
+        
         let data = &inner_instruction.data[16..];
         let mut events = Vec::new();
         if let Some(event) = self.parse_inner_instruction_event(

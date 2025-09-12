@@ -1022,19 +1022,14 @@ impl EventParser for GenericEventParser {
         transaction_index: Option<u64>,
         config: &GenericEventParseConfig,
     ) -> Vec<Box<dyn UnifiedEvent>> {
-        // Use SIMD-optimized data validation
-        if !SimdUtils::validate_instruction_data_simd(&inner_instruction.data, 16, 0) {
-            return Vec::new();
-        }
-        
-        // Check if the discriminator matches what we expect for this event type
+        // Use SIMD-optimized data validation with correct discriminator length
         let discriminator_len = config.inner_instruction_discriminator.len();
-        if inner_instruction.data.len() < discriminator_len {
+        if !SimdUtils::validate_instruction_data_simd(&inner_instruction.data, 16, discriminator_len) {
             return Vec::new();
         }
         
-        // Validate discriminator matches
-        if !inner_instruction.data[..discriminator_len].eq(config.inner_instruction_discriminator) {
+        // Use SIMD-optimized discriminator matching
+        if !SimdUtils::fast_discriminator_match(&inner_instruction.data, config.inner_instruction_discriminator) {
             return Vec::new();
         }
         
@@ -1070,19 +1065,14 @@ impl EventParser for GenericEventParser {
         transaction_index: Option<u64>,
         config: &GenericEventParseConfig,
     ) -> Vec<Box<dyn UnifiedEvent>> {
-        // Use SIMD-optimized data validation
-        if !SimdUtils::validate_instruction_data_simd(&inner_instruction.data, 16, 0) {
-            return Vec::new();
-        }
-        
-        // Check if the discriminator matches what we expect for this event type
+        // Use SIMD-optimized data validation with correct discriminator length
         let discriminator_len = config.inner_instruction_discriminator.len();
-        if inner_instruction.data.len() < discriminator_len {
+        if !SimdUtils::validate_instruction_data_simd(&inner_instruction.data, 16, discriminator_len) {
             return Vec::new();
         }
         
-        // Validate discriminator matches
-        if !inner_instruction.data[..discriminator_len].eq(config.inner_instruction_discriminator) {
+        // Use SIMD-optimized discriminator matching
+        if !SimdUtils::fast_discriminator_match(&inner_instruction.data, config.inner_instruction_discriminator) {
             return Vec::new();
         }
         

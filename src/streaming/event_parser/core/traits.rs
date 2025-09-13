@@ -16,7 +16,8 @@ use std::time::Instant;
 use yellowstone_grpc_proto::geyser::SubscribeUpdateTransactionInfo;
 
 use super::global_state::{
-    add_bonk_dev_address, add_dev_address, is_bonk_dev_address, is_dev_address,
+    add_bonk_dev_address, add_dev_address,
+    is_bonk_dev_address_in_signature, is_dev_address_in_signature,
 };
 
 use crate::streaming::common::simd_utils::SimdUtils;
@@ -1389,14 +1390,14 @@ fn process_event(
     mut event: Box<dyn UnifiedEvent>,
     bot_wallet: Option<Pubkey>,
 ) -> Box<dyn UnifiedEvent> {
-    let slot = event.slot();
+    let signature = *event.signature(); // Copy the signature to avoid borrowing issues
     if let Some(token_info) = event.as_any().downcast_ref::<PumpFunCreateTokenEvent>() {
-        add_dev_address(slot, token_info.user);
+        add_dev_address(&signature, token_info.user);
         if token_info.creator != Pubkey::default() && token_info.creator != token_info.user {
-            add_dev_address(slot, token_info.creator);
+            add_dev_address(&signature, token_info.creator);
         }
     } else if let Some(trade_info) = event.as_any_mut().downcast_mut::<PumpFunTradeEvent>() {
-        if is_dev_address(&trade_info.user) || is_dev_address(&trade_info.creator) {
+        if is_dev_address_in_signature(&signature, &trade_info.user) || is_dev_address_in_signature(&signature, &trade_info.creator) {
             trade_info.is_dev_create_token_trade = true;
         } else if Some(trade_info.user) == bot_wallet {
             trade_info.is_bot = true;
@@ -1422,9 +1423,9 @@ fn process_event(
                 trade_info.user_quote_amount_out;
         }
     } else if let Some(pool_info) = event.as_any().downcast_ref::<BonkPoolCreateEvent>() {
-        add_bonk_dev_address(slot, pool_info.creator);
+        add_bonk_dev_address(&signature, pool_info.creator);
     } else if let Some(trade_info) = event.as_any_mut().downcast_mut::<BonkTradeEvent>() {
-        if is_bonk_dev_address(&trade_info.payer) {
+        if is_bonk_dev_address_in_signature(&signature, &trade_info.payer) {
             trade_info.is_dev_create_token_trade = true;
         } else if Some(trade_info.payer) == bot_wallet {
             trade_info.is_bot = true;

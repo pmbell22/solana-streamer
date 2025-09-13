@@ -36,7 +36,8 @@
     <a href="README_CN.md">中文</a> | 
     <a href="README.md">English</a> | 
     <a href="https://fnzero.dev/">Website</a> |
-    <a href="https://t.me/fnzero_group">Telegram</a>
+    <a href="https://t.me/fnzero_group">Telegram</a> |
+    <a href="https://discord.gg/vuazbGkqQE">Discord</a>
 </p>
 
 ---
@@ -357,6 +358,7 @@ MIT License
 - **Website**: https://fnzero.dev/
 - **Project Repository**: https://github.com/0xfnzero/solana-streamer
 - **Telegram Group**: https://t.me/fnzero_group
+- **Discord**: https://discord.gg/vuazbGkqQE
 
 ## ⚠️ Important Notes
 

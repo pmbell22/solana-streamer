@@ -1,8 +1,9 @@
 use crate::impl_unified_event;
 use crate::streaming::common::SimdUtils;
 use crate::streaming::event_parser::common::filter::EventTypeFilter;
+use crate::streaming::event_parser::common::high_performance_clock::elapsed_micros_since;
 use crate::streaming::event_parser::common::{EventMetadata, EventType, ProtocolType};
-use crate::streaming::event_parser::core::traits::{elapsed_micros_since, UnifiedEvent};
+use crate::streaming::event_parser::core::traits::UnifiedEvent;
 use crate::streaming::event_parser::protocols::bonk::parser::BONK_PROGRAM_ID;
 use crate::streaming::event_parser::protocols::pumpfun::parser::PUMPFUN_PROGRAM_ID;
 use crate::streaming::event_parser::protocols::pumpswap::parser::PUMPSWAP_PROGRAM_ID;

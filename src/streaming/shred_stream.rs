@@ -7,8 +7,8 @@ use crate::common::AnyResult;
 use crate::protos::shredstream::SubscribeEntriesRequest;
 use crate::streaming::common::{EventProcessor, SubscriptionHandle};
 use crate::streaming::event_parser::common::filter::EventTypeFilter;
+use crate::streaming::event_parser::common::high_performance_clock::get_high_perf_clock;
 use crate::streaming::event_parser::{Protocol, UnifiedEvent};
-use crate::streaming::event_parser::core::traits::get_high_perf_clock;
 use crate::streaming::shred::pool::factory;
 use log::error;
 use solana_entry::entry::Entry;
@@ -58,11 +58,12 @@ impl ShredStreamGrpc {
                         if let Ok(entries) = bincode::deserialize::<Vec<Entry>>(&msg.entries) {
                             for entry in entries {
                                 for transaction in entry.transactions {
-                                    let transaction_with_slot = factory::create_transaction_with_slot_pooled(
-                                        transaction.clone(),
-                                        msg.slot,
-                                        get_high_perf_clock(),
-                                    );
+                                    let transaction_with_slot =
+                                        factory::create_transaction_with_slot_pooled(
+                                            transaction.clone(),
+                                            msg.slot,
+                                            get_high_perf_clock(),
+                                        );
                                     // 直接处理，背压控制在 EventProcessor 内部处理
                                     if let Err(e) = event_processor_clone
                                         .process_shred_transaction_with_metrics(

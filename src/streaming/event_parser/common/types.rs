@@ -24,7 +24,6 @@ use crate::{
 
 // Object pool size configuration
 const EVENT_METADATA_POOL_SIZE: usize = 1000;
-const TRANSFER_DATA_POOL_SIZE: usize = 2000;
 
 /// Event metadata object pool
 pub struct EventMetadataPool {

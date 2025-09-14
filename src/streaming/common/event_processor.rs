@@ -299,6 +299,9 @@ impl EventProcessor {
         let tx = transaction_with_slot.transaction;
 
         let slot = transaction_with_slot.slot;
+        if tx.signatures.is_empty() {
+            return Ok(());
+        }
         let signature = tx.signatures[0];
         let recv_us = transaction_with_slot.recv_us;
 

@@ -105,16 +105,34 @@ fn parse_create_token_instruction(
         return None;
     }
     let mut offset = 0;
+    if offset + 4 > data.len() {
+        return None;
+    }
     let name_len = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
     offset += 4;
+    if offset + name_len > data.len() {
+        return None;
+    }
     let name = String::from_utf8_lossy(&data[offset..offset + name_len]);
     offset += name_len;
+    if offset + 4 > data.len() {
+        return None;
+    }
     let symbol_len = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
     offset += 4;
+    if offset + symbol_len > data.len() {
+        return None;
+    }
     let symbol = String::from_utf8_lossy(&data[offset..offset + symbol_len]);
     offset += symbol_len;
+    if offset + 4 > data.len() {
+        return None;
+    }
     let uri_len = u32::from_le_bytes(data[offset..offset + 4].try_into().unwrap()) as usize;
     offset += 4;
+    if offset + uri_len > data.len() {
+        return None;
+    }
     let uri = String::from_utf8_lossy(&data[offset..offset + uri_len]);
     offset += uri_len;
     let creator = if offset + 32 <= data.len() {

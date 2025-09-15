@@ -213,17 +213,16 @@ impl EventParser {
             // 解析每个指令
             for (index, instruction) in compiled_instructions.iter().enumerate() {
                 if let Some(program_id) = accounts.get(instruction.program_id_index as usize) {
-                    if self.should_handle(program_id) {
-                        let max_idx = instruction.accounts.iter().max().unwrap_or(&0);
-                        // 补齐accounts(使用Pubkey::default())
-                        if *max_idx as usize > accounts.len() {
-                            for _i in accounts.len()..*max_idx as usize {
-                                accounts.push(Pubkey::default());
-                            }
-                        }
-                        let inner_instructions = inner_instructions
-                            .iter()
-                            .find(|inner_instruction| inner_instruction.index == index as u32);
+                    let program_id = *program_id; // 克隆程序ID，避免借用冲突
+                    let inner_instructions = inner_instructions
+                        .iter()
+                        .find(|inner_instruction| inner_instruction.index == index as u32);
+                    let max_idx = instruction.accounts.iter().max().unwrap_or(&0);
+                    // 补齐accounts(使用Pubkey::default())
+                    if *max_idx as usize >= accounts.len() {
+                        accounts.resize(*max_idx as usize + 1, Pubkey::default());
+                    }
+                    if self.should_handle(&program_id) {
                         self.parse_events_from_grpc_instruction(
                             instruction,
                             &accounts,
@@ -238,35 +237,34 @@ impl EventParser {
                             inner_instructions,
                             Arc::clone(&callback),
                         )?;
-
-                        // Immediately process inner instructions for correct ordering
-                        if let Some(inner_instructions) = inner_instructions {
-                            for (inner_index, inner_instruction) in
-                                inner_instructions.instructions.iter().enumerate()
-                            {
-                                let inner_accounts = &inner_instruction.accounts;
-                                let data = &inner_instruction.data;
-                                let instruction =
-                                    yellowstone_grpc_proto::prelude::CompiledInstruction {
-                                        program_id_index: inner_instruction.program_id_index,
-                                        accounts: inner_accounts.to_vec(),
-                                        data: data.to_vec(),
-                                    };
-                                self.parse_events_from_grpc_instruction(
-                                    &instruction,
-                                    &accounts,
-                                    signature,
-                                    slot.unwrap_or(0),
-                                    block_time,
-                                    recv_us,
-                                    inner_instructions.index as i64,
-                                    Some(inner_index as i64),
-                                    bot_wallet,
-                                    transaction_index,
-                                    Some(&inner_instructions),
-                                    Arc::clone(&callback),
-                                )?;
-                            }
+                    }
+                    // Immediately process inner instructions for correct ordering
+                    if let Some(inner_instructions) = inner_instructions {
+                        for (inner_index, inner_instruction) in
+                            inner_instructions.instructions.iter().enumerate()
+                        {
+                            let inner_accounts = &inner_instruction.accounts;
+                            let data = &inner_instruction.data;
+                            let instruction =
+                                yellowstone_grpc_proto::prelude::CompiledInstruction {
+                                    program_id_index: inner_instruction.program_id_index,
+                                    accounts: inner_accounts.to_vec(),
+                                    data: data.to_vec(),
+                                };
+                            self.parse_events_from_grpc_instruction(
+                                &instruction,
+                                &accounts,
+                                signature,
+                                slot.unwrap_or(0),
+                                block_time,
+                                recv_us,
+                                inner_instructions.index as i64,
+                                Some(inner_index as i64),
+                                bot_wallet,
+                                transaction_index,
+                                Some(&inner_instructions),
+                                Arc::clone(&callback),
+                            )?;
                         }
                     }
                 }
@@ -299,17 +297,16 @@ impl EventParser {
             // 解析每个指令
             for (index, instruction) in compiled_instructions.iter().enumerate() {
                 if let Some(program_id) = accounts.get(instruction.program_id_index as usize) {
-                    if self.should_handle(program_id) {
+                    let program_id = *program_id; // 克隆程序ID，避免借用冲突
+                    let inner_instructions = inner_instructions
+                        .iter()
+                        .find(|inner_instruction| inner_instruction.index == index as u8);
+                    if self.should_handle(&program_id) {
                         let max_idx = instruction.accounts.iter().max().unwrap_or(&0);
                         // 补齐accounts(使用Pubkey::default())
-                        if *max_idx as usize > accounts.len() {
-                            for _i in accounts.len()..*max_idx as usize {
-                                accounts.push(Pubkey::default());
-                            }
+                        if *max_idx as usize >= accounts.len() {
+                            accounts.resize(*max_idx as usize + 1, Pubkey::default());
                         }
-                        let inner_instructions = inner_instructions
-                            .iter()
-                            .find(|inner_instruction| inner_instruction.index == index as u8);
                         self.parse_events_from_instruction(
                             instruction,
                             &accounts,
@@ -324,27 +321,26 @@ impl EventParser {
                             inner_instructions,
                             Arc::clone(&callback),
                         )?;
-
-                        // Immediately process inner instructions for correct ordering
-                        if let Some(inner_instructions) = inner_instructions {
-                            for (inner_index, inner_instruction) in
-                                inner_instructions.instructions.iter().enumerate()
-                            {
-                                self.parse_events_from_instruction(
-                                    &inner_instruction.instruction,
-                                    &accounts,
-                                    signature,
-                                    slot.unwrap_or(0),
-                                    block_time,
-                                    recv_us,
-                                    index as i64,
-                                    Some(inner_index as i64),
-                                    bot_wallet,
-                                    transaction_index,
-                                    Some(&inner_instructions),
-                                    Arc::clone(&callback),
-                                )?;
-                            }
+                    }
+                    // Immediately process inner instructions for correct ordering
+                    if let Some(inner_instructions) = inner_instructions {
+                        for (inner_index, inner_instruction) in
+                            inner_instructions.instructions.iter().enumerate()
+                        {
+                            self.parse_events_from_instruction(
+                                &inner_instruction.instruction,
+                                &accounts,
+                                signature,
+                                slot.unwrap_or(0),
+                                block_time,
+                                recv_us,
+                                index as i64,
+                                Some(inner_index as i64),
+                                bot_wallet,
+                                transaction_index,
+                                Some(&inner_instructions),
+                                Arc::clone(&callback),
+                            )?;
                         }
                     }
                 }

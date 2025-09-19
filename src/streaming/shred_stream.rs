@@ -40,6 +40,7 @@ impl ShredStreamGrpc {
         let mut event_processor =
             EventProcessor::new(self.metrics_manager.clone(), self.config.clone());
         event_processor.set_protocols_and_event_type_filter(
+            super::common::EventSource::Shred,
             protocols,
             event_type_filter,
             self.config.backpressure.clone(),

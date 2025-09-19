@@ -210,6 +210,7 @@ impl YellowstoneGrpc {
         // 启动流处理任务
         let mut event_processor = self.event_processor.clone();
         event_processor.set_protocols_and_event_type_filter(
+            super::common::EventSource::Grpc,
             protocols,
             event_type_filter,
             self.config.backpressure.clone(),

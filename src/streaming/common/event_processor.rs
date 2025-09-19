@@ -19,6 +19,11 @@ use crate::streaming::grpc::{BackpressureConfig, EventPretty};
 use crate::streaming::shred::TransactionWithSlot;
 use once_cell::sync::OnceCell;
 
+pub enum EventSource {
+    Grpc,
+    Shred,
+}
+
 /// High-performance Event processor using SegQueue for all strategies
 pub struct EventProcessor {
     pub(crate) metrics_manager: MetricsManager,
@@ -62,6 +67,7 @@ impl EventProcessor {
 
     pub fn set_protocols_and_event_type_filter(
         &mut self,
+        source: EventSource,
         protocols: Vec<Protocol>,
         event_type_filter: Option<EventTypeFilter>,
         backpressure_config: BackpressureConfig,
@@ -79,7 +85,7 @@ impl EventProcessor {
         });
 
         if matches!(self.backpressure_config.strategy, BackpressureStrategy::Block) {
-            self.start_block_processing_thread();
+            self.start_block_processing_thread(source);
         }
     }
 
@@ -328,7 +334,7 @@ impl EventProcessor {
         self.metrics_manager.update_metrics(ty, count, time_us);
     }
 
-    fn start_block_processing_thread(&self) {
+    fn start_block_processing_thread(&self, source: EventSource) {
         self.processing_shutdown.store(false, Ordering::Relaxed);
 
         let grpc_queue = Arc::clone(&self.grpc_queue);
@@ -340,55 +346,62 @@ impl EventProcessor {
         let processor = self.clone();
         let processor_clone = self.clone();
         // Dedicated thread with busy-wait and lock-free processing
-        std::thread::spawn(move || {
-            let worker_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4); // 如果获取失败则回退到4个线程
+        match source {
+            EventSource::Grpc => {
+                std::thread::spawn(move || {
+                    let mut worker_threads =
+                        std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4); // 如果获取失败则回退到4个线程
 
-            let rt = tokio::runtime::Builder::new_multi_thread()
-                .worker_threads(worker_threads)
-                .enable_all()
-                .build()
-                .unwrap();
+                    let rt = tokio::runtime::Builder::new_multi_thread()
+                        .worker_threads(worker_threads)
+                        .enable_all()
+                        .build()
+                        .unwrap();
 
-            while !shutdown_flag.load(Ordering::Relaxed) {
-                if let Some((event_pretty, bot_wallet)) = grpc_queue.pop() {
-                    grpc_pending_count.fetch_sub(1, Ordering::Relaxed);
-                    if let Err(e) = rt.block_on(
-                        processor.process_grpc_event_transaction(event_pretty, bot_wallet),
-                    ) {
-                        println!("Error processing gRPC event: {}", e);
+                    while !shutdown_flag.load(Ordering::Relaxed) {
+                        if let Some((event_pretty, bot_wallet)) = grpc_queue.pop() {
+                            grpc_pending_count.fetch_sub(1, Ordering::Relaxed);
+                            if let Err(e) = rt.block_on(
+                                processor.process_grpc_event_transaction(event_pretty, bot_wallet),
+                            ) {
+                                println!("Error processing gRPC event: {}", e);
+                            }
+                        } else {
+                            // 待测试替换方案： lock-free queue + spin + batch
+                            std::thread::sleep(std::time::Duration::from_micros(500));
+                        }
                     }
-                } else {
-                    // Yield to reduce CPU usage in busy wait
-                    std::thread::yield_now();
-                }
+                });
             }
-        });
+            EventSource::Shred => {
+                // Shred processing with same low-latency optimization
+                std::thread::spawn(move || {
+                    let worker_threads =
+                        std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4); // 如果获取失败则回退到4个线程
 
-        // Shred processing with same low-latency optimization
-        std::thread::spawn(move || {
-            let worker_threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4); // 如果获取失败则回退到4个线程
+                    let rt = tokio::runtime::Builder::new_multi_thread()
+                        .worker_threads(worker_threads)
+                        .enable_all()
+                        .build()
+                        .unwrap();
 
-            let rt = tokio::runtime::Builder::new_multi_thread()
-                .worker_threads(worker_threads)
-                .enable_all()
-                .build()
-                .unwrap();
-
-            while !shutdown_flag_clone.load(Ordering::Relaxed) {
-                if let Some((transaction_with_slot, bot_wallet)) = shred_queue.pop() {
-                    shred_pending_count.fetch_sub(1, Ordering::Relaxed);
-                    if let Err(e) = rt.block_on(
-                        processor_clone
-                            .process_shred_transaction(transaction_with_slot, bot_wallet),
-                    ) {
-                        log::error!("Error processing shred transaction: {}", e);
+                    while !shutdown_flag_clone.load(Ordering::Relaxed) {
+                        if let Some((transaction_with_slot, bot_wallet)) = shred_queue.pop() {
+                            shred_pending_count.fetch_sub(1, Ordering::Relaxed);
+                            if let Err(e) = rt.block_on(
+                                processor_clone
+                                    .process_shred_transaction(transaction_with_slot, bot_wallet),
+                            ) {
+                                log::error!("Error processing shred transaction: {}", e);
+                            }
+                        } else {
+                            // 待测试替换方案： lock-free queue + spin + batch
+                            std::thread::sleep(std::time::Duration::from_micros(500));
+                        }
                     }
-                } else {
-                    // Yield to reduce CPU usage in busy wait
-                    std::thread::yield_now();
-                }
+                });
             }
-        });
+        }
     }
 
     pub fn stop_processing(&self) {

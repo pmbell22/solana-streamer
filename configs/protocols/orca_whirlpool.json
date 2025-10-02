@@ -1,0 +1,98 @@
+{
+  "name": "orca_whirlpool",
+  "version": "1.0.0",
+  "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+  "description": "Orca Whirlpool - Concentrated liquidity AMM",
+  "instructions": [
+    {
+      "name": "swap",
+      "discriminator": "f8c69e91e17587c8",
+      "event_type": "OrcaWhirlpoolSwap",
+      "accounts": [
+        {"name": "token_program", "is_mut": false, "is_signer": false, "description": "Token program"},
+        {"name": "token_authority", "is_mut": false, "is_signer": true, "description": "Token authority"},
+        {"name": "whirlpool", "is_mut": true, "is_signer": false, "description": "Whirlpool account"},
+        {"name": "token_owner_account_a", "is_mut": true, "is_signer": false, "description": "User token A account"},
+        {"name": "token_vault_a", "is_mut": true, "is_signer": false, "description": "Vault token A"},
+        {"name": "token_owner_account_b", "is_mut": true, "is_signer": false, "description": "User token B account"},
+        {"name": "token_vault_b", "is_mut": true, "is_signer": false, "description": "Vault token B"},
+        {"name": "tick_array_0", "is_mut": true, "is_signer": false, "description": "Tick array 0"},
+        {"name": "tick_array_1", "is_mut": true, "is_signer": false, "description": "Tick array 1"},
+        {"name": "tick_array_2", "is_mut": true, "is_signer": false, "description": "Tick array 2"},
+        {"name": "oracle", "is_mut": false, "is_signer": false, "description": "Oracle account"}
+      ],
+      "data_fields": [
+        {"name": "amount", "field_type": "u64", "offset": 0, "description": "Amount to swap"},
+        {"name": "other_amount_threshold", "field_type": "u64", "offset": 8, "description": "Minimum amount out"},
+        {"name": "sqrt_price_limit", "field_type": "u128", "offset": 16, "description": "Price limit"},
+        {"name": "amount_specified_is_input", "field_type": "bool", "offset": 32, "description": "Is input amount"},
+        {"name": "a_to_b", "field_type": "bool", "offset": 33, "description": "Swap direction A to B"}
+      ]
+    },
+    {
+      "name": "swap_v2",
+      "discriminator": "8c2f6f9f40d3f0f1",
+      "event_type": "OrcaWhirlpoolSwapV2",
+      "accounts": [
+        {"name": "token_program_a", "is_mut": false, "is_signer": false},
+        {"name": "token_program_b", "is_mut": false, "is_signer": false},
+        {"name": "memo_program", "is_mut": false, "is_signer": false},
+        {"name": "token_authority", "is_mut": false, "is_signer": true},
+        {"name": "whirlpool", "is_mut": true, "is_signer": false},
+        {"name": "token_mint_a", "is_mut": false, "is_signer": false},
+        {"name": "token_mint_b", "is_mut": false, "is_signer": false},
+        {"name": "token_owner_account_a", "is_mut": true, "is_signer": false},
+        {"name": "token_vault_a", "is_mut": true, "is_signer": false},
+        {"name": "token_owner_account_b", "is_mut": true, "is_signer": false},
+        {"name": "token_vault_b", "is_mut": true, "is_signer": false},
+        {"name": "tick_array_0", "is_mut": true, "is_signer": false},
+        {"name": "tick_array_1", "is_mut": true, "is_signer": false},
+        {"name": "tick_array_2", "is_mut": true, "is_signer": false},
+        {"name": "oracle", "is_mut": false, "is_signer": false}
+      ],
+      "data_fields": [
+        {"name": "amount", "field_type": "u64", "offset": 0},
+        {"name": "other_amount_threshold", "field_type": "u64", "offset": 8},
+        {"name": "sqrt_price_limit", "field_type": "u128", "offset": 16},
+        {"name": "amount_specified_is_input", "field_type": "bool", "offset": 32},
+        {"name": "a_to_b", "field_type": "bool", "offset": 33}
+      ]
+    },
+    {
+      "name": "two_hop_swap",
+      "discriminator": "5d4e175e9fbde5d3",
+      "event_type": "OrcaWhirlpoolTwoHopSwap",
+      "accounts": [
+        {"name": "token_program", "is_mut": false, "is_signer": false},
+        {"name": "token_authority", "is_mut": false, "is_signer": true},
+        {"name": "whirlpool_one", "is_mut": true, "is_signer": false},
+        {"name": "whirlpool_two", "is_mut": true, "is_signer": false},
+        {"name": "token_owner_account_one_a", "is_mut": true, "is_signer": false},
+        {"name": "token_vault_one_a", "is_mut": true, "is_signer": false},
+        {"name": "token_owner_account_one_b", "is_mut": true, "is_signer": false},
+        {"name": "token_vault_one_b", "is_mut": true, "is_signer": false},
+        {"name": "token_owner_account_two_a", "is_mut": true, "is_signer": false},
+        {"name": "token_vault_two_a", "is_mut": true, "is_signer": false},
+        {"name": "token_owner_account_two_b", "is_mut": true, "is_signer": false},
+        {"name": "token_vault_two_b", "is_mut": true, "is_signer": false},
+        {"name": "tick_array_one_0", "is_mut": true, "is_signer": false},
+        {"name": "tick_array_one_1", "is_mut": true, "is_signer": false},
+        {"name": "tick_array_one_2", "is_mut": true, "is_signer": false},
+        {"name": "tick_array_two_0", "is_mut": true, "is_signer": false},
+        {"name": "tick_array_two_1", "is_mut": true, "is_signer": false},
+        {"name": "tick_array_two_2", "is_mut": true, "is_signer": false},
+        {"name": "oracle_one", "is_mut": false, "is_signer": false},
+        {"name": "oracle_two", "is_mut": false, "is_signer": false}
+      ],
+      "data_fields": [
+        {"name": "amount", "field_type": "u64", "offset": 0},
+        {"name": "other_amount_threshold", "field_type": "u64", "offset": 8},
+        {"name": "amount_specified_is_input", "field_type": "bool", "offset": 16},
+        {"name": "a_to_b_one", "field_type": "bool", "offset": 17},
+        {"name": "a_to_b_two", "field_type": "bool", "offset": 18},
+        {"name": "sqrt_price_limit_one", "field_type": "u128", "offset": 19},
+        {"name": "sqrt_price_limit_two", "field_type": "u128", "offset": 35}
+      ]
+    }
+  ]
+}

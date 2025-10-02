@@ -60,9 +60,9 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
 
     // Will try to parse corresponding protocol events from transactions
     let protocols = vec![
-        // Protocol::RaydiumCpmm,
+        Protocol::RaydiumCpmm,
         Protocol::RaydiumClmm,
-        // Protocol::RaydiumAmmV4,
+        Protocol::RaydiumAmmV4,
     ];
 
     println!("Protocols to monitor: {:?}", protocols);
@@ -124,7 +124,7 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
 
     grpc.subscribe_events_immediate(
         protocols,
-        None,
+        None, // bot_wallet parameter
         vec![transaction_filter],
         vec![account_filter],
         event_type_filter,

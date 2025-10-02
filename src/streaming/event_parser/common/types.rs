@@ -62,6 +62,7 @@ pub enum ProtocolType {
     RaydiumClmm,
     RaydiumAmmV4,
     Common,
+    Custom(String),
 }
 
 /// Event type enumeration
@@ -109,6 +110,9 @@ pub enum EventType {
     // Common events
     BlockMeta,
     Unknown,
+
+    // Dynamic/custom events
+    Custom(String),
 }
 
 pub const ACCOUNT_EVENT_TYPES: &[EventType] = &[
@@ -163,6 +167,7 @@ impl fmt::Display for EventType {
             EventType::NonceAccount => write!(f, "NonceAccount"),
             EventType::BlockMeta => write!(f, "BlockMeta"),
             EventType::Unknown => write!(f, "Unknown"),
+            EventType::Custom(name) => write!(f, "{}", name),
         }
     }
 }

@@ -1,0 +1,81 @@
+{
+  "name": "jupiter_aggregator_v6",
+  "version": "1.0.0",
+  "program_id": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+  "description": "Jupiter Aggregator V6 - The best swap aggregator on Solana",
+  "instructions": [
+    {
+      "name": "route",
+      "discriminator": "e517cb977ae3ad2a",
+      "event_type": "JupiterV6Route",
+      "accounts": [
+        {"name": "token_program", "is_mut": false, "is_signer": false, "description": "Token program"},
+        {"name": "user_transfer_authority", "is_mut": false, "is_signer": true, "description": "User transfer authority"},
+        {"name": "user_source_token_account", "is_mut": true, "is_signer": false, "description": "User source token account"},
+        {"name": "user_destination_token_account", "is_mut": true, "is_signer": false, "description": "User destination token account"},
+        {"name": "destination_token_account", "is_mut": true, "is_signer": false, "description": "Optional destination token account"},
+        {"name": "destination_mint", "is_mut": false, "is_signer": false, "description": "Destination token mint"},
+        {"name": "platform_fee_account", "is_mut": true, "is_signer": false, "description": "Optional platform fee account"},
+        {"name": "event_authority", "is_mut": false, "is_signer": false, "description": "Event authority"},
+        {"name": "program", "is_mut": false, "is_signer": false, "description": "Jupiter program"}
+      ],
+      "data_fields": [
+        {"name": "in_amount", "field_type": "u64", "offset": 0, "description": "Input amount to swap"},
+        {"name": "quoted_out_amount", "field_type": "u64", "offset": 8, "description": "Expected output amount"},
+        {"name": "slippage_bps", "field_type": "u16", "offset": 16, "description": "Slippage in basis points"},
+        {"name": "platform_fee_bps", "field_type": "u8", "offset": 18, "description": "Platform fee in basis points"}
+      ]
+    },
+    {
+      "name": "shared_accounts_route",
+      "discriminator": "1dd407a1b423cd43",
+      "event_type": "JupiterV6SharedAccountsRoute",
+      "accounts": [
+        {"name": "token_program", "is_mut": false, "is_signer": false},
+        {"name": "program_authority", "is_mut": false, "is_signer": false},
+        {"name": "user_transfer_authority", "is_mut": false, "is_signer": true},
+        {"name": "source_token_account", "is_mut": true, "is_signer": false},
+        {"name": "program_source_token_account", "is_mut": true, "is_signer": false},
+        {"name": "program_destination_token_account", "is_mut": true, "is_signer": false},
+        {"name": "destination_token_account", "is_mut": true, "is_signer": false},
+        {"name": "source_mint", "is_mut": false, "is_signer": false},
+        {"name": "destination_mint", "is_mut": false, "is_signer": false},
+        {"name": "platform_fee_account", "is_mut": true, "is_signer": false},
+        {"name": "token_2022_program", "is_mut": false, "is_signer": false},
+        {"name": "event_authority", "is_mut": false, "is_signer": false},
+        {"name": "program", "is_mut": false, "is_signer": false}
+      ],
+      "data_fields": [
+        {"name": "id", "field_type": "u8", "offset": 0},
+        {"name": "in_amount", "field_type": "u64", "offset": 1},
+        {"name": "quoted_out_amount", "field_type": "u64", "offset": 9},
+        {"name": "slippage_bps", "field_type": "u16", "offset": 17},
+        {"name": "platform_fee_bps", "field_type": "u8", "offset": 19}
+      ]
+    },
+    {
+      "name": "exact_out_route",
+      "discriminator": "d033a8a962743a24",
+      "event_type": "JupiterV6ExactOutRoute",
+      "accounts": [
+        {"name": "token_program", "is_mut": false, "is_signer": false},
+        {"name": "user_transfer_authority", "is_mut": false, "is_signer": true},
+        {"name": "user_source_token_account", "is_mut": true, "is_signer": false},
+        {"name": "user_destination_token_account", "is_mut": true, "is_signer": false},
+        {"name": "destination_token_account", "is_mut": true, "is_signer": false},
+        {"name": "source_mint", "is_mut": false, "is_signer": false},
+        {"name": "destination_mint", "is_mut": false, "is_signer": false},
+        {"name": "platform_fee_account", "is_mut": true, "is_signer": false},
+        {"name": "token_2022_program", "is_mut": false, "is_signer": false},
+        {"name": "event_authority", "is_mut": false, "is_signer": false},
+        {"name": "program", "is_mut": false, "is_signer": false}
+      ],
+      "data_fields": [
+        {"name": "out_amount", "field_type": "u64", "offset": 0},
+        {"name": "quoted_in_amount", "field_type": "u64", "offset": 8},
+        {"name": "slippage_bps", "field_type": "u16", "offset": 16},
+        {"name": "platform_fee_bps", "field_type": "u8", "offset": 18}
+      ]
+    }
+  ]
+}

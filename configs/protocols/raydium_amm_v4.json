@@ -1,0 +1,66 @@
+{
+  "name": "raydium_amm_v4",
+  "version": "1.0.0",
+  "program_id": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+  "description": "Raydium AMM V4 protocol configuration",
+  "instructions": [
+    {
+      "name": "swap_base_in",
+      "discriminator": "09",
+      "event_type": "RaydiumAmmV4SwapBaseIn",
+      "accounts": [
+        {"name": "token_program", "is_mut": false, "is_signer": false},
+        {"name": "amm", "is_mut": true, "is_signer": false},
+        {"name": "amm_authority", "is_mut": false, "is_signer": false},
+        {"name": "amm_open_orders", "is_mut": true, "is_signer": false},
+        {"name": "amm_target_orders", "is_mut": true, "is_signer": false},
+        {"name": "pool_coin_token_account", "is_mut": true, "is_signer": false},
+        {"name": "pool_pc_token_account", "is_mut": true, "is_signer": false},
+        {"name": "serum_program", "is_mut": false, "is_signer": false},
+        {"name": "serum_market", "is_mut": true, "is_signer": false},
+        {"name": "serum_bids", "is_mut": true, "is_signer": false},
+        {"name": "serum_asks", "is_mut": true, "is_signer": false},
+        {"name": "serum_event_queue", "is_mut": true, "is_signer": false},
+        {"name": "serum_coin_vault_account", "is_mut": true, "is_signer": false},
+        {"name": "serum_pc_vault_account", "is_mut": true, "is_signer": false},
+        {"name": "serum_vault_signer", "is_mut": false, "is_signer": false},
+        {"name": "user_source_token_account", "is_mut": true, "is_signer": false},
+        {"name": "user_destination_token_account", "is_mut": true, "is_signer": false},
+        {"name": "user_source_owner", "is_mut": false, "is_signer": true}
+      ],
+      "data_fields": [
+        {"name": "amount_in", "field_type": "u64", "offset": 0},
+        {"name": "minimum_amount_out", "field_type": "u64", "offset": 8}
+      ]
+    },
+    {
+      "name": "swap_base_out",
+      "discriminator": "0a",
+      "event_type": "RaydiumAmmV4SwapBaseOut",
+      "accounts": [
+        {"name": "token_program", "is_mut": false, "is_signer": false},
+        {"name": "amm", "is_mut": true, "is_signer": false},
+        {"name": "amm_authority", "is_mut": false, "is_signer": false},
+        {"name": "amm_open_orders", "is_mut": true, "is_signer": false},
+        {"name": "amm_target_orders", "is_mut": true, "is_signer": false},
+        {"name": "pool_coin_token_account", "is_mut": true, "is_signer": false},
+        {"name": "pool_pc_token_account", "is_mut": true, "is_signer": false},
+        {"name": "serum_program", "is_mut": false, "is_signer": false},
+        {"name": "serum_market", "is_mut": true, "is_signer": false},
+        {"name": "serum_bids", "is_mut": true, "is_signer": false},
+        {"name": "serum_asks", "is_mut": true, "is_signer": false},
+        {"name": "serum_event_queue", "is_mut": true, "is_signer": false},
+        {"name": "serum_coin_vault_account", "is_mut": true, "is_signer": false},
+        {"name": "serum_pc_vault_account", "is_mut": true, "is_signer": false},
+        {"name": "serum_vault_signer", "is_mut": false, "is_signer": false},
+        {"name": "user_source_token_account", "is_mut": true, "is_signer": false},
+        {"name": "user_destination_token_account", "is_mut": true, "is_signer": false},
+        {"name": "user_source_owner", "is_mut": false, "is_signer": true}
+      ],
+      "data_fields": [
+        {"name": "max_amount_in", "field_type": "u64", "offset": 0},
+        {"name": "amount_out", "field_type": "u64", "offset": 8}
+      ]
+    }
+  ]
+}

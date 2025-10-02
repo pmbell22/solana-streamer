@@ -1,0 +1,33 @@
+{
+  "name": "orca_whirlpool",
+  "version": "1.0.0",
+  "program_id": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+  "description": "Example Orca Whirlpool protocol configuration",
+  "instructions": [
+    {
+      "name": "swap",
+      "discriminator": "f8c69e91e17587c8",
+      "event_type": "OrcaWhirlpoolSwap",
+      "accounts": [
+        {"name": "token_program", "is_mut": false, "is_signer": false, "description": "Token program"},
+        {"name": "token_authority", "is_mut": false, "is_signer": true, "description": "Token authority"},
+        {"name": "whirlpool", "is_mut": true, "is_signer": false, "description": "Whirlpool account"},
+        {"name": "token_owner_account_a", "is_mut": true, "is_signer": false, "description": "User token A account"},
+        {"name": "token_owner_account_b", "is_mut": true, "is_signer": false, "description": "User token B account"},
+        {"name": "token_vault_a", "is_mut": true, "is_signer": false, "description": "Vault token A"},
+        {"name": "token_vault_b", "is_mut": true, "is_signer": false, "description": "Vault token B"},
+        {"name": "tick_array_0", "is_mut": true, "is_signer": false, "description": "Tick array 0"},
+        {"name": "tick_array_1", "is_mut": true, "is_signer": false, "description": "Tick array 1"},
+        {"name": "tick_array_2", "is_mut": true, "is_signer": false, "description": "Tick array 2"},
+        {"name": "oracle", "is_mut": false, "is_signer": false, "description": "Oracle account"}
+      ],
+      "data_fields": [
+        {"name": "amount", "field_type": "u64", "offset": 0, "description": "Amount to swap"},
+        {"name": "other_amount_threshold", "field_type": "u64", "offset": 8, "description": "Minimum amount out"},
+        {"name": "sqrt_price_limit", "field_type": "u128", "offset": 16, "description": "Price limit"},
+        {"name": "amount_specified_is_input", "field_type": "bool", "offset": 32, "description": "Is input amount"},
+        {"name": "a_to_b", "field_type": "bool", "offset": 33, "description": "Swap direction"}
+      ]
+    }
+  ]
+}

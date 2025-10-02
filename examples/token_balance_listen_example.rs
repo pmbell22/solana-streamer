@@ -40,7 +40,7 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
     let transaction_filter =
         TransactionFilter { account_include, account_exclude, account_required };
 
-    let account_to_listen = "use_your_token_account_here".to_string();
+    let account_to_listen = "Czfq3xZZDmsdGdUyrNLtRhGc47cXcZtLG4crryfu44zE".to_string();
 
     // Listen to account data belonging to owner programs -> account event monitoring
     let account_filter =

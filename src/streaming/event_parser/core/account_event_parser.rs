@@ -4,9 +4,6 @@ use crate::streaming::event_parser::common::filter::EventTypeFilter;
 use crate::streaming::event_parser::common::high_performance_clock::elapsed_micros_since;
 use crate::streaming::event_parser::common::{EventMetadata, EventType, ProtocolType};
 use crate::streaming::event_parser::core::traits::UnifiedEvent;
-use crate::streaming::event_parser::protocols::bonk::parser::BONK_PROGRAM_ID;
-use crate::streaming::event_parser::protocols::pumpfun::parser::PUMPFUN_PROGRAM_ID;
-use crate::streaming::event_parser::protocols::pumpswap::parser::PUMPSWAP_PROGRAM_ID;
 use crate::streaming::event_parser::protocols::raydium_amm_v4::parser::RAYDIUM_AMM_V4_PROGRAM_ID;
 use crate::streaming::event_parser::protocols::raydium_clmm::parser::RAYDIUM_CLMM_PROGRAM_ID;
 use crate::streaming::event_parser::protocols::raydium_cpmm::parser::RAYDIUM_CPMM_PROGRAM_ID;
@@ -97,61 +94,6 @@ impl AccountEventParser {
     ) -> Vec<AccountEventParseConfig> {
         let protocols_map = PROTOCOL_CONFIGS_CACHE.get_or_init(|| {
             let mut map: HashMap<Protocol, Vec<AccountEventParseConfig>> = HashMap::new();
-            map.insert(Protocol::PumpSwap, vec![
-                AccountEventParseConfig {
-                    program_id: PUMPSWAP_PROGRAM_ID,
-                    protocol_type: ProtocolType::PumpSwap,
-                    event_type: EventType::AccountPumpSwapGlobalConfig,
-                    account_discriminator: crate::streaming::event_parser::protocols::pumpswap::discriminators::GLOBAL_CONFIG_ACCOUNT,
-                    account_parser: crate::streaming::event_parser::protocols::pumpswap::types::global_config_parser,
-                },
-                AccountEventParseConfig {
-                    program_id: PUMPSWAP_PROGRAM_ID,
-                    protocol_type: ProtocolType::PumpSwap,
-                    event_type: EventType::AccountPumpSwapPool,
-                    account_discriminator: crate::streaming::event_parser::protocols::pumpswap::discriminators::POOL_ACCOUNT,
-                    account_parser: crate::streaming::event_parser::protocols::pumpswap::types::pool_parser,
-                },
-            ]);
-            map.insert(Protocol::PumpFun, vec![
-                AccountEventParseConfig {
-                    program_id: PUMPFUN_PROGRAM_ID,
-                    protocol_type: ProtocolType::PumpFun,
-                    event_type: EventType::AccountPumpFunBondingCurve,
-                    account_discriminator: crate::streaming::event_parser::protocols::pumpfun::discriminators::BONDING_CURVE_ACCOUNT,
-                    account_parser: crate::streaming::event_parser::protocols::pumpfun::types::bonding_curve_parser,
-                },
-                AccountEventParseConfig {
-                    program_id: PUMPFUN_PROGRAM_ID,
-                    protocol_type: ProtocolType::PumpFun,
-                    event_type: EventType::AccountPumpFunGlobal,
-                    account_discriminator: crate::streaming::event_parser::protocols::pumpfun::discriminators::GLOBAL_ACCOUNT,
-                    account_parser: crate::streaming::event_parser::protocols::pumpfun::types::global_parser,
-                },
-            ]);
-            map.insert(Protocol::Bonk, vec![
-                AccountEventParseConfig {
-                    program_id: BONK_PROGRAM_ID,
-                    protocol_type: ProtocolType::Bonk,
-                    event_type: EventType::AccountBonkPoolState,
-                    account_discriminator: crate::streaming::event_parser::protocols::bonk::discriminators::POOL_STATE_ACCOUNT,
-                    account_parser: crate::streaming::event_parser::protocols::bonk::types::pool_state_parser,
-                },
-                AccountEventParseConfig {
-                    program_id: BONK_PROGRAM_ID,
-                    protocol_type: ProtocolType::Bonk,
-                    event_type: EventType::AccountBonkGlobalConfig,
-                    account_discriminator: crate::streaming::event_parser::protocols::bonk::discriminators::GLOBAL_CONFIG_ACCOUNT,
-                    account_parser: crate::streaming::event_parser::protocols::bonk::types::global_config_parser,
-                },
-                AccountEventParseConfig {
-                    program_id: BONK_PROGRAM_ID,
-                    protocol_type: ProtocolType::Bonk,
-                    event_type: EventType::AccountBonkPlatformConfig,
-                    account_discriminator: crate::streaming::event_parser::protocols::bonk::discriminators::PLATFORM_CONFIG_ACCOUNT,
-                    account_parser: crate::streaming::event_parser::protocols::bonk::types::platform_config_parser,
-                },
-            ]);
             map.insert(Protocol::RaydiumCpmm, vec![
                 AccountEventParseConfig {
                     program_id: RAYDIUM_CPMM_PROGRAM_ID,

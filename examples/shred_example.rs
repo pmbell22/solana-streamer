@@ -67,9 +67,6 @@ async fn test_shreds() -> Result<(), Box<dyn std::error::Error>> {
 
     let callback = create_event_callback();
     let protocols = vec![
-        Protocol::PumpFun,
-        Protocol::PumpSwap,
-        Protocol::Bonk,
         Protocol::RaydiumCpmm,
         Protocol::RaydiumClmm,
         Protocol::RaydiumAmmV4,

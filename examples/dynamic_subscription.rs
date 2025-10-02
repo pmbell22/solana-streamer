@@ -64,9 +64,9 @@ async fn main() -> Result<()> {
 
     if let Err(e) = client
         .subscribe_events_immediate(
-            vec![Protocol::PumpFun, Protocol::RaydiumCpmm],
+            vec![Protocol::RaydiumCpmm],
             None,
-            vec![pumpfun_filter],
+            vec![],
             vec![account_filter],
             Some(trade_event_filter),
             None,
@@ -260,7 +260,7 @@ async fn main() -> Result<()> {
 
     if let Err(e) = shutdown_client
         .subscribe_events_immediate(
-            vec![Protocol::PumpFun, Protocol::RaydiumCpmm],
+            vec![Protocol::RaydiumCpmm],
             None,
             vec![TransactionFilter {
                 account_include: vec![],

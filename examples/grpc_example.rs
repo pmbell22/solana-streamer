@@ -2,24 +2,9 @@ use solana_streamer_sdk::{
     match_event,
     streaming::{
         event_parser::{
-            common::EventType,
+            common::{filter::EventTypeFilter, EventType},
             core::account_event_parser::{NonceAccountEvent, TokenAccountEvent, TokenInfoEvent},
             protocols::{
-                bonk::{
-                    parser::BONK_PROGRAM_ID, BonkGlobalConfigAccountEvent, BonkMigrateToAmmEvent,
-                    BonkMigrateToCpswapEvent, BonkPlatformConfigAccountEvent, BonkPoolCreateEvent,
-                    BonkPoolStateAccountEvent, BonkTradeEvent,
-                },
-                pumpfun::{
-                    parser::PUMPFUN_PROGRAM_ID, PumpFunBondingCurveAccountEvent,
-                    PumpFunCreateTokenEvent, PumpFunGlobalAccountEvent, PumpFunMigrateEvent,
-                    PumpFunTradeEvent,
-                },
-                pumpswap::{
-                    parser::PUMPSWAP_PROGRAM_ID, PumpSwapBuyEvent, PumpSwapCreatePoolEvent,
-                    PumpSwapDepositEvent, PumpSwapGlobalConfigAccountEvent,
-                    PumpSwapPoolAccountEvent, PumpSwapSellEvent, PumpSwapWithdrawEvent,
-                },
                 raydium_amm_v4::{
                     parser::RAYDIUM_AMM_V4_PROGRAM_ID, RaydiumAmmV4AmmInfoAccountEvent,
                     RaydiumAmmV4DepositEvent, RaydiumAmmV4Initialize2Event, RaydiumAmmV4SwapEvent,
@@ -75,21 +60,15 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
 
     // Will try to parse corresponding protocol events from transactions
     let protocols = vec![
-        Protocol::PumpFun,
-        Protocol::PumpSwap,
-        Protocol::Bonk,
-        Protocol::RaydiumCpmm,
+        // Protocol::RaydiumCpmm,
         Protocol::RaydiumClmm,
-        Protocol::RaydiumAmmV4,
+        // Protocol::RaydiumAmmV4,
     ];
 
     println!("Protocols to monitor: {:?}", protocols);
 
     // Filter accounts
     let account_include = vec![
-        PUMPFUN_PROGRAM_ID.to_string(),        // Listen to pumpfun program ID
-        PUMPSWAP_PROGRAM_ID.to_string(),       // Listen to pumpswap program ID
-        BONK_PROGRAM_ID.to_string(),           // Listen to bonk program ID
         RAYDIUM_CPMM_PROGRAM_ID.to_string(),   // Listen to raydium_cpmm program ID
         RAYDIUM_CLMM_PROGRAM_ID.to_string(),   // Listen to raydium_clmm program ID
         RAYDIUM_AMM_V4_PROGRAM_ID.to_string(), // Listen to raydium_amm_v4 program ID
@@ -108,8 +87,33 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
     let account_filter = AccountFilter { account: vec![], owner: account_include.clone(), filters: vec![] };
 
     // Event filtering
-    // No event filtering, includes all events
-    let event_type_filter = None;
+    // Include all Raydium event types
+    let event_type_filter = Some(EventTypeFilter {
+        include: vec![
+            // Raydium CPMM events
+            EventType::RaydiumCpmmSwapBaseInput,
+            EventType::RaydiumCpmmSwapBaseOutput,
+            EventType::RaydiumCpmmDeposit,
+            EventType::RaydiumCpmmInitialize,
+            EventType::RaydiumCpmmWithdraw,
+            // Raydium CLMM events
+            EventType::RaydiumClmmSwap,
+            EventType::RaydiumClmmSwapV2,
+            EventType::RaydiumClmmClosePosition,
+            EventType::RaydiumClmmIncreaseLiquidityV2,
+            EventType::RaydiumClmmDecreaseLiquidityV2,
+            EventType::RaydiumClmmCreatePool,
+            EventType::RaydiumClmmOpenPositionWithToken22Nft,
+            EventType::RaydiumClmmOpenPositionV2,
+            // Raydium AMM V4 events
+            EventType::RaydiumAmmV4SwapBaseIn,
+            EventType::RaydiumAmmV4SwapBaseOut,
+            EventType::RaydiumAmmV4Deposit,
+            EventType::RaydiumAmmV4Initialize2,
+            EventType::RaydiumAmmV4Withdraw,
+            EventType::RaydiumAmmV4WithdrawPnl,
+        ],
+    });
     // Only include PumpSwapBuy events and PumpSwapSell events
     // let event_type_filter = Some(EventTypeFilter { include: vec![EventType::PumpFunTrade] });
 
@@ -129,7 +133,6 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
     )
     .await?;
 
-    // 支持 stop 方法，测试代码 -  异步1000秒之后停止
     let grpc_clone = grpc.clone();
     tokio::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_secs(1000)).await;
@@ -153,47 +156,6 @@ fn create_event_callback() -> impl Fn(Box<dyn UnifiedEvent>) {
             // -------------------------- block meta -----------------------
             BlockMetaEvent => |e: BlockMetaEvent| {
                 println!("BlockMetaEvent: {:?}", e.metadata.handle_us);
-            },
-            // -------------------------- bonk -----------------------
-            BonkPoolCreateEvent => |e: BonkPoolCreateEvent| {
-                // When using grpc, you can get block_time from each event
-                println!("block_time: {:?}, block_time_ms: {:?}", e.metadata.block_time, e.metadata.block_time_ms);
-                println!("BonkPoolCreateEvent: {:?}", e.base_mint_param.symbol);
-            },
-            BonkTradeEvent => |e: BonkTradeEvent| {
-                println!("BonkTradeEvent: {e:?}");
-            },
-            BonkMigrateToAmmEvent => |e: BonkMigrateToAmmEvent| {
-                println!("BonkMigrateToAmmEvent: {e:?}");
-            },
-            BonkMigrateToCpswapEvent => |e: BonkMigrateToCpswapEvent| {
-                println!("BonkMigrateToCpswapEvent: {e:?}");
-            },
-            // -------------------------- pumpfun -----------------------
-            PumpFunTradeEvent => |e: PumpFunTradeEvent| {
-                println!("PumpFunTradeEvent: {e:?}");
-            },
-            PumpFunMigrateEvent => |e: PumpFunMigrateEvent| {
-                println!("PumpFunMigrateEvent: {e:?}");
-            },
-            PumpFunCreateTokenEvent => |e: PumpFunCreateTokenEvent| {
-                println!("PumpFunCreateTokenEvent: {e:?}");
-            },
-            // -------------------------- pumpswap -----------------------
-            PumpSwapBuyEvent => |e: PumpSwapBuyEvent| {
-                println!("Buy event: {e:?}");
-            },
-            PumpSwapSellEvent => |e: PumpSwapSellEvent| {
-                println!("Sell event: {e:?}");
-            },
-            PumpSwapCreatePoolEvent => |e: PumpSwapCreatePoolEvent| {
-                println!("CreatePool event: {e:?}");
-            },
-            PumpSwapDepositEvent => |e: PumpSwapDepositEvent| {
-                println!("Deposit event: {e:?}");
-            },
-            PumpSwapWithdrawEvent => |e: PumpSwapWithdrawEvent| {
-                println!("Withdraw event: {e:?}");
             },
             // -------------------------- raydium_cpmm -----------------------
             RaydiumCpmmSwapEvent => |e: RaydiumCpmmSwapEvent| {
@@ -248,28 +210,6 @@ fn create_event_callback() -> impl Fn(Box<dyn UnifiedEvent>) {
             },
             RaydiumAmmV4WithdrawPnlEvent => |e: RaydiumAmmV4WithdrawPnlEvent| {
                 println!("RaydiumAmmV4WithdrawPnlEvent: {e:?}");
-            },
-            // -------------------------- account -----------------------
-            BonkPoolStateAccountEvent => |e: BonkPoolStateAccountEvent| {
-                println!("BonkPoolStateAccountEvent: {e:?}");
-            },
-            BonkGlobalConfigAccountEvent => |e: BonkGlobalConfigAccountEvent| {
-                println!("BonkGlobalConfigAccountEvent: {e:?}");
-            },
-            BonkPlatformConfigAccountEvent => |e: BonkPlatformConfigAccountEvent| {
-                println!("BonkPlatformConfigAccountEvent: {e:?}");
-            },
-            PumpSwapGlobalConfigAccountEvent => |e: PumpSwapGlobalConfigAccountEvent| {
-                println!("PumpSwapGlobalConfigAccountEvent: {e:?}");
-            },
-            PumpSwapPoolAccountEvent => |e: PumpSwapPoolAccountEvent| {
-                println!("PumpSwapPoolAccountEvent: {e:?}");
-            },
-            PumpFunBondingCurveAccountEvent => |e: PumpFunBondingCurveAccountEvent| {
-                println!("PumpFunBondingCurveAccountEvent: {e:?}");
-            },
-            PumpFunGlobalAccountEvent => |e: PumpFunGlobalAccountEvent| {
-                println!("PumpFunGlobalAccountEvent: {e:?}");
             },
             RaydiumAmmV4AmmInfoAccountEvent => |e: RaydiumAmmV4AmmInfoAccountEvent| {
                 println!("RaydiumAmmV4AmmInfoAccountEvent: {e:?}");

@@ -7,14 +7,7 @@ use crate::streaming::{
             parse_swap_data_from_next_grpc_instructions, parse_swap_data_from_next_instructions,
             EventMetadata, EventType, ProtocolType,
         },
-        core::global_state::{
-            add_bonk_dev_address, add_dev_address, is_bonk_dev_address_in_signature,
-            is_dev_address_in_signature,
-        },
         protocols::{
-            bonk::{parser::BONK_PROGRAM_ID, BonkPoolCreateEvent, BonkTradeEvent},
-            pumpfun::{parser::PUMPFUN_PROGRAM_ID, PumpFunCreateTokenEvent, PumpFunTradeEvent},
-            pumpswap::{parser::PUMPSWAP_PROGRAM_ID, PumpSwapBuyEvent, PumpSwapSellEvent},
             raydium_amm_v4::parser::RAYDIUM_AMM_V4_PROGRAM_ID,
             raydium_clmm::parser::RAYDIUM_CLMM_PROGRAM_ID,
             raydium_cpmm::parser::RAYDIUM_CPMM_PROGRAM_ID,
@@ -104,25 +97,7 @@ pub static EVENT_PARSERS: LazyLock<HashMap<Protocol, (Pubkey, &[GenericEventPars
     LazyLock::new(|| {
         // 预分配容量，避免动态扩容
         let mut parsers: HashMap<Protocol, (Pubkey, &[GenericEventParseConfig])> =
-            HashMap::with_capacity(6);
-        parsers.insert(
-            Protocol::PumpSwap,
-            (
-                PUMPSWAP_PROGRAM_ID,
-                crate::streaming::event_parser::protocols::pumpswap::parser::CONFIGS,
-            ),
-        );
-        parsers.insert(
-            Protocol::PumpFun,
-            (
-                PUMPFUN_PROGRAM_ID,
-                crate::streaming::event_parser::protocols::pumpfun::parser::CONFIGS,
-            ),
-        );
-        parsers.insert(
-            Protocol::Bonk,
-            (BONK_PROGRAM_ID, crate::streaming::event_parser::protocols::bonk::parser::CONFIGS),
-        );
+            HashMap::with_capacity(3);
         parsers.insert(
             Protocol::RaydiumCpmm,
             (
@@ -456,7 +431,7 @@ impl EventParser {
                 if let Some(meta) = grpc_tx.meta {
                     inner_instructions = meta.inner_instructions;
                     address_table_lookups.reserve(
-                        meta.loaded_writable_addresses.len() + meta.loaded_writable_addresses.len(),
+                        meta.loaded_writable_addresses.len() + meta.loaded_readonly_addresses.len(),
                     );
                     let loaded_writable_addresses = meta.loaded_writable_addresses;
                     let loaded_readonly_addresses = meta.loaded_readonly_addresses;
@@ -1075,53 +1050,8 @@ impl EventParser {
 }
 
 fn process_event(
-    mut event: Box<dyn UnifiedEvent>,
-    bot_wallet: Option<Pubkey>,
+    event: Box<dyn UnifiedEvent>,
+    _bot_wallet: Option<Pubkey>,
 ) -> Box<dyn UnifiedEvent> {
-    let signature = *event.signature(); // Copy the signature to avoid borrowing issues
-    if let Some(token_info) = event.as_any().downcast_ref::<PumpFunCreateTokenEvent>() {
-        add_dev_address(&signature, token_info.user);
-        if token_info.creator != Pubkey::default() && token_info.creator != token_info.user {
-            add_dev_address(&signature, token_info.creator);
-        }
-    } else if let Some(trade_info) = event.as_any_mut().downcast_mut::<PumpFunTradeEvent>() {
-        if is_dev_address_in_signature(&signature, &trade_info.user)
-            || is_dev_address_in_signature(&signature, &trade_info.creator)
-        {
-            trade_info.is_dev_create_token_trade = true;
-        } else if Some(trade_info.user) == bot_wallet {
-            trade_info.is_bot = true;
-        } else {
-            trade_info.is_dev_create_token_trade = false;
-        }
-        if trade_info.metadata.swap_data.is_some() {
-            trade_info.metadata.swap_data.as_mut().unwrap().from_amount =
-                if trade_info.is_buy { trade_info.sol_amount } else { trade_info.token_amount };
-            trade_info.metadata.swap_data.as_mut().unwrap().to_amount =
-                if trade_info.is_buy { trade_info.token_amount } else { trade_info.sol_amount };
-        }
-    } else if let Some(trade_info) = event.as_any_mut().downcast_mut::<PumpSwapBuyEvent>() {
-        if trade_info.metadata.swap_data.is_some() {
-            trade_info.metadata.swap_data.as_mut().unwrap().from_amount =
-                trade_info.user_quote_amount_in;
-            trade_info.metadata.swap_data.as_mut().unwrap().to_amount = trade_info.base_amount_out;
-        }
-    } else if let Some(trade_info) = event.as_any_mut().downcast_mut::<PumpSwapSellEvent>() {
-        if trade_info.metadata.swap_data.is_some() {
-            trade_info.metadata.swap_data.as_mut().unwrap().from_amount = trade_info.base_amount_in;
-            trade_info.metadata.swap_data.as_mut().unwrap().to_amount =
-                trade_info.user_quote_amount_out;
-        }
-    } else if let Some(pool_info) = event.as_any().downcast_ref::<BonkPoolCreateEvent>() {
-        add_bonk_dev_address(&signature, pool_info.creator);
-    } else if let Some(trade_info) = event.as_any_mut().downcast_mut::<BonkTradeEvent>() {
-        if is_bonk_dev_address_in_signature(&signature, &trade_info.payer) {
-            trade_info.is_dev_create_token_trade = true;
-        } else if Some(trade_info.payer) == bot_wallet {
-            trade_info.is_bot = true;
-        } else {
-            trade_info.is_dev_create_token_trade = false;
-        }
-    }
     event
 }

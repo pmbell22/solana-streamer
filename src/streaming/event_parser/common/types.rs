@@ -10,9 +10,6 @@ use crate::{
         common::SimdUtils,
         event_parser::{
             protocols::{
-                bonk::BonkTradeEvent,
-                pumpfun::PumpFunTradeEvent,
-                pumpswap::{PumpSwapBuyEvent, PumpSwapSellEvent},
                 raydium_amm_v4::RaydiumAmmV4SwapEvent,
                 raydium_clmm::{RaydiumClmmSwapEvent, RaydiumClmmSwapV2Event},
                 raydium_cpmm::RaydiumCpmmSwapEvent,
@@ -61,9 +58,6 @@ lazy_static::lazy_static! {
 )]
 pub enum ProtocolType {
     #[default]
-    PumpSwap,
-    PumpFun,
-    Bonk,
     RaydiumCpmm,
     RaydiumClmm,
     RaydiumAmmV4,
@@ -75,32 +69,8 @@ pub enum ProtocolType {
     Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, BorshSerialize, BorshDeserialize,
 )]
 pub enum EventType {
-    // PumpSwap events
-    #[default]
-    PumpSwapBuy,
-    PumpSwapSell,
-    PumpSwapCreatePool,
-    PumpSwapDeposit,
-    PumpSwapWithdraw,
-
-    // PumpFun events
-    PumpFunCreateToken,
-    PumpFunBuy,
-    PumpFunSell,
-    PumpFunMigrate,
-
-    // Bonk events
-    BonkBuyExactIn,
-    BonkBuyExactOut,
-    BonkSellExactIn,
-    BonkSellExactOut,
-    BonkInitialize,
-    BonkInitializeV2,
-    BonkInitializeWithToken2022,
-    BonkMigrateToAmm,
-    BonkMigrateToCpswap,
-
     // Raydium CPMM events
+    #[default]
     RaydiumCpmmSwapBaseInput,
     RaydiumCpmmSwapBaseOutput,
     RaydiumCpmmDeposit,
@@ -127,14 +97,6 @@ pub enum EventType {
 
     // Account events
     AccountRaydiumAmmV4AmmInfo,
-    AccountPumpSwapGlobalConfig,
-    AccountPumpSwapPool,
-    AccountBonkPoolState,
-    AccountBonkGlobalConfig,
-    AccountBonkPlatformConfig,
-    AccountBonkVestingRecord,
-    AccountPumpFunBondingCurve,
-    AccountPumpFunGlobal,
     AccountRaydiumClmmAmmConfig,
     AccountRaydiumClmmPoolState,
     AccountRaydiumClmmTickArrayState,
@@ -151,14 +113,6 @@ pub enum EventType {
 
 pub const ACCOUNT_EVENT_TYPES: &[EventType] = &[
     EventType::AccountRaydiumAmmV4AmmInfo,
-    EventType::AccountPumpSwapGlobalConfig,
-    EventType::AccountPumpSwapPool,
-    EventType::AccountBonkPoolState,
-    EventType::AccountBonkGlobalConfig,
-    EventType::AccountBonkPlatformConfig,
-    EventType::AccountBonkVestingRecord,
-    EventType::AccountPumpFunBondingCurve,
-    EventType::AccountPumpFunGlobal,
     EventType::AccountRaydiumClmmAmmConfig,
     EventType::AccountRaydiumClmmPoolState,
     EventType::AccountRaydiumClmmTickArrayState,
@@ -172,24 +126,6 @@ pub const BLOCK_EVENT_TYPES: &[EventType] = &[EventType::BlockMeta];
 impl fmt::Display for EventType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            EventType::PumpSwapBuy => write!(f, "PumpSwapBuy"),
-            EventType::PumpSwapSell => write!(f, "PumpSwapSell"),
-            EventType::PumpSwapCreatePool => write!(f, "PumpSwapCreatePool"),
-            EventType::PumpSwapDeposit => write!(f, "PumpSwapDeposit"),
-            EventType::PumpSwapWithdraw => write!(f, "PumpSwapWithdraw"),
-            EventType::PumpFunCreateToken => write!(f, "PumpFunCreateToken"),
-            EventType::PumpFunBuy => write!(f, "PumpFunBuy"),
-            EventType::PumpFunSell => write!(f, "PumpFunSell"),
-            EventType::PumpFunMigrate => write!(f, "PumpFunMigrate"),
-            EventType::BonkBuyExactIn => write!(f, "BonkBuyExactIn"),
-            EventType::BonkBuyExactOut => write!(f, "BonkBuyExactOut"),
-            EventType::BonkSellExactIn => write!(f, "BonkSellExactIn"),
-            EventType::BonkSellExactOut => write!(f, "BonkSellExactOut"),
-            EventType::BonkInitialize => write!(f, "BonkInitialize"),
-            EventType::BonkInitializeV2 => write!(f, "BonkInitializeV2"),
-            EventType::BonkInitializeWithToken2022 => write!(f, "BonkInitializeWithToken2022"),
-            EventType::BonkMigrateToAmm => write!(f, "BonkMigrateToAmm"),
-            EventType::BonkMigrateToCpswap => write!(f, "BonkMigrateToCpswap"),
             EventType::RaydiumCpmmSwapBaseInput => write!(f, "RaydiumCpmmSwapBaseInput"),
             EventType::RaydiumCpmmSwapBaseOutput => write!(f, "RaydiumCpmmSwapBaseOutput"),
             EventType::RaydiumCpmmDeposit => write!(f, "RaydiumCpmmDeposit"),
@@ -216,14 +152,6 @@ impl fmt::Display for EventType {
             EventType::RaydiumAmmV4Withdraw => write!(f, "RaydiumAmmV4Withdraw"),
             EventType::RaydiumAmmV4WithdrawPnl => write!(f, "RaydiumAmmV4WithdrawPnl"),
             EventType::AccountRaydiumAmmV4AmmInfo => write!(f, "AccountRaydiumAmmV4AmmInfo"),
-            EventType::AccountPumpSwapGlobalConfig => write!(f, "AccountPumpSwapGlobalConfig"),
-            EventType::AccountPumpSwapPool => write!(f, "AccountPumpSwapPool"),
-            EventType::AccountBonkPoolState => write!(f, "AccountBonkPoolState"),
-            EventType::AccountBonkGlobalConfig => write!(f, "AccountBonkGlobalConfig"),
-            EventType::AccountBonkPlatformConfig => write!(f, "AccountBonkPlatformConfig"),
-            EventType::AccountBonkVestingRecord => write!(f, "AccountBonkVestingRecord"),
-            EventType::AccountPumpFunBondingCurve => write!(f, "AccountPumpFunBondingCurve"),
-            EventType::AccountPumpFunGlobal => write!(f, "AccountPumpFunGlobal"),
             EventType::AccountRaydiumClmmAmmConfig => write!(f, "AccountRaydiumClmmAmmConfig"),
             EventType::AccountRaydiumClmmPoolState => write!(f, "AccountRaydiumClmmPoolState"),
             EventType::AccountRaydiumClmmTickArrayState => {
@@ -387,27 +315,6 @@ pub fn parse_swap_data_from_next_instructions(
     let mut to_vault: Option<Pubkey> = None;
 
     match_event!(&*event, {
-        BonkTradeEvent => |e: BonkTradeEvent| {
-            user = Some(e.payer);
-            from_mint = Some(e.base_token_mint);
-            to_mint = Some(e.quote_token_mint);
-            user_from_token = Some(e.user_base_token);
-            user_to_token = Some(e.user_quote_token);
-            from_vault = Some(e.base_vault);
-            to_vault = Some(e.quote_vault);
-        },
-        PumpFunTradeEvent => |e: PumpFunTradeEvent| {
-            swap_data.from_mint = if e.is_buy { *SOL_MINT } else { e.mint };
-            swap_data.to_mint   = if e.is_buy { e.mint } else { *SOL_MINT };
-        },
-        PumpSwapBuyEvent => |e: PumpSwapBuyEvent| {
-            swap_data.from_mint = e.quote_mint;
-            swap_data.to_mint   = e.base_mint;
-        },
-        PumpSwapSellEvent => |e: PumpSwapSellEvent| {
-            swap_data.from_mint = e.base_mint;
-            swap_data.to_mint   = e.quote_mint;
-        },
         RaydiumCpmmSwapEvent => |e: RaydiumCpmmSwapEvent| {
             user = Some(e.payer);
             from_mint = Some(e.input_token_mint);
@@ -554,27 +461,6 @@ pub fn parse_swap_data_from_next_grpc_instructions(
     let mut to_vault: Option<Pubkey> = None;
 
     match_event!(&*event, {
-        BonkTradeEvent => |e: BonkTradeEvent| {
-            user = Some(e.payer);
-            from_mint = Some(e.base_token_mint);
-            to_mint = Some(e.quote_token_mint);
-            user_from_token = Some(e.user_base_token);
-            user_to_token = Some(e.user_quote_token);
-            from_vault = Some(e.base_vault);
-            to_vault = Some(e.quote_vault);
-        },
-        PumpFunTradeEvent => |e: PumpFunTradeEvent| {
-            swap_data.from_mint = if e.is_buy { *SOL_MINT } else { e.mint };
-            swap_data.to_mint   = if e.is_buy { e.mint } else { *SOL_MINT };
-        },
-        PumpSwapBuyEvent => |e: PumpSwapBuyEvent| {
-            swap_data.from_mint = e.quote_mint;
-            swap_data.to_mint   = e.base_mint;
-        },
-        PumpSwapSellEvent => |e: PumpSwapSellEvent| {
-            swap_data.from_mint = e.base_mint;
-            swap_data.to_mint   = e.quote_mint;
-        },
         RaydiumCpmmSwapEvent => |e: RaydiumCpmmSwapEvent| {
             user = Some(e.payer);
             from_mint = Some(e.input_token_mint);

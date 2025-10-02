@@ -12,8 +12,6 @@ const CLEANUP_BATCH_SIZE: usize = 100;
 struct SignatureAddresses {
     /// Developer addresses for this signature
     dev_addresses: BTreeSet<Pubkey>,
-    /// Bonk developer addresses for this signature  
-    bonk_dev_addresses: BTreeSet<Pubkey>,
 }
 
 /// High-performance global state with lock-free signature-based storage
@@ -83,22 +81,6 @@ impl GlobalState {
             });
     }
 
-    /// Add Bonk developer address for a specific signature (lock-free)
-    pub fn add_bonk_dev_address(&self, signature: &Signature, address: Pubkey) {
-        self.maybe_cleanup();
-        
-        self.signature_data.entry(*signature)
-            .and_modify(|addresses| {
-                addresses.bonk_dev_addresses.insert(address);
-            })
-            .or_insert_with(|| {
-                self.signature_count.fetch_add(1, Ordering::Relaxed);
-                let mut sig_addr = SignatureAddresses::default();
-                sig_addr.bonk_dev_addresses.insert(address);
-                sig_addr
-            });
-    }
-
     /// High-performance: Check if address is a developer address in specific signature (O(log m))
     pub fn is_dev_address_in_signature(&self, signature: &Signature, address: &Pubkey) -> bool {
         self.signature_data.get(signature)
@@ -106,21 +88,9 @@ impl GlobalState {
             .unwrap_or(false)
     }
 
-    /// High-performance: Check if address is a Bonk developer address in specific signature (O(log m))
-    pub fn is_bonk_dev_address_in_signature(&self, signature: &Signature, address: &Pubkey) -> bool {
-        self.signature_data.get(signature)
-            .map(|entry| entry.bonk_dev_addresses.contains(address))
-            .unwrap_or(false)
-    }
-
     /// Check if address is a developer address in any signature (lock-free scan, slower)
     pub fn is_dev_address(&self, address: &Pubkey) -> bool {
         self.signature_data.iter().any(|entry| entry.dev_addresses.contains(address))
-    }
-
-    /// Check if address is a Bonk developer address in any signature (lock-free scan, slower)
-    pub fn is_bonk_dev_address(&self, address: &Pubkey) -> bool {
-        self.signature_data.iter().any(|entry| entry.bonk_dev_addresses.contains(address))
     }
 
     /// Get all developer addresses from all signatures (lock-free aggregation)
@@ -134,28 +104,10 @@ impl GlobalState {
         all_addresses.into_iter().collect()
     }
 
-    /// Get all Bonk developer addresses from all signatures (lock-free aggregation)
-    pub fn get_bonk_dev_addresses(&self) -> Vec<Pubkey> {
-        let mut all_addresses = BTreeSet::new();
-        for entry in self.signature_data.iter() {
-            for addr in &entry.bonk_dev_addresses {
-                all_addresses.insert(*addr);
-            }
-        }
-        all_addresses.into_iter().collect()
-    }
-
     /// Get developer addresses for a specific signature
     pub fn get_dev_addresses_for_signature(&self, signature: &Signature) -> Vec<Pubkey> {
         self.signature_data.get(signature)
             .map(|entry| entry.dev_addresses.iter().copied().collect())
-            .unwrap_or_default()
-    }
-
-    /// Get Bonk developer addresses for a specific signature
-    pub fn get_bonk_dev_addresses_for_signature(&self, signature: &Signature) -> Vec<Pubkey> {
-        self.signature_data.get(signature)
-            .map(|entry| entry.bonk_dev_addresses.iter().copied().collect())
             .unwrap_or_default()
     }
 
@@ -197,34 +149,14 @@ pub fn is_dev_address(address: &Pubkey) -> bool {
     get_global_state().is_dev_address(address)
 }
 
-/// Convenience function: Add Bonk developer address for a specific signature
-pub fn add_bonk_dev_address(signature: &Signature, address: Pubkey) {
-    get_global_state().add_bonk_dev_address(signature, address);
-}
-
-/// Convenience function: Check if address is a Bonk developer address
-pub fn is_bonk_dev_address(address: &Pubkey) -> bool {
-    get_global_state().is_bonk_dev_address(address)
-}
-
 /// Convenience function: Get all developer addresses
 pub fn get_dev_addresses() -> Vec<Pubkey> {
     get_global_state().get_dev_addresses()
 }
 
-/// Convenience function: Get all Bonk developer addresses
-pub fn get_bonk_dev_addresses() -> Vec<Pubkey> {
-    get_global_state().get_bonk_dev_addresses()
-}
-
 /// Convenience function: Get developer addresses for a specific signature
 pub fn get_dev_addresses_for_signature(signature: &Signature) -> Vec<Pubkey> {
     get_global_state().get_dev_addresses_for_signature(signature)
-}
-
-/// Convenience function: Get Bonk developer addresses for a specific signature
-pub fn get_bonk_dev_addresses_for_signature(signature: &Signature) -> Vec<Pubkey> {
-    get_global_state().get_bonk_dev_addresses_for_signature(signature)
 }
 
 /// Convenience function: Get current signature count
@@ -235,9 +167,4 @@ pub fn get_signature_count() -> usize {
 /// High-performance: Check if address is a developer address in specific signature
 pub fn is_dev_address_in_signature(signature: &Signature, address: &Pubkey) -> bool {
     get_global_state().is_dev_address_in_signature(signature, address)
-}
-
-/// High-performance: Check if address is a Bonk developer address in specific signature
-pub fn is_bonk_dev_address_in_signature(signature: &Signature, address: &Pubkey) -> bool {
-    get_global_state().is_bonk_dev_address_in_signature(signature, address)
 }

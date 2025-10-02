@@ -4,7 +4,7 @@
 </div>
 
 <p align="center">
-    <strong>A lightweight Rust library providing efficient event parsing and subscription capabilities for PumpFun, PumpSwap, Bonk, and Raydium protocols.</strong>
+    <strong>A lightweight Rust library providing efficient event parsing and subscription capabilities for Raydium protocols.</strong>
 </p>
 
 <p align="center">
@@ -66,9 +66,6 @@
 - **Unified Event Interface**: Consistent event handling across all supported protocols
 
 ### Multi-Protocol Support
-- **PumpFun**: Meme coin trading platform events
-- **PumpSwap**: PumpFun's swap protocol events
-- **Bonk**: Token launch platform events (letsbonk.fun)
 - **Raydium CPMM**: Raydium's Concentrated Pool Market Maker events
 - **Raydium CLMM**: Raydium's Concentrated Liquidity Market Maker events
 - **Raydium AMM V4**: Raydium's Automated Market Maker V4 events
@@ -189,7 +186,6 @@ let config = StreamClientConfig {
 | Update filters at runtime | `cargo run --example dynamic_subscription` | [examples/dynamic_subscription.rs](examples/dynamic_subscription.rs) |
 | Monitor specific token account balance changes | `cargo run --example token_balance_listen_example` | [examples/token_balance_listen_example.rs](examples/token_balance_listen_example.rs) |
 | Track nonce account state changes | `cargo run --example nonce_listen_example` | [examples/nonce_listen_example.rs](examples/nonce_listen_example.rs) |
-| Monitor PumpSwap pool accounts using memcmp filters | `cargo run --example pumpswap_pool_account_listen_example` | [examples/pumpswap_pool_account_listen_example.rs](examples/pumpswap_pool_account_listen_example.rs) |
 | Monitor all associated token accounts for specific mints using memcmp filters | `cargo run --example mint_all_ata_account_listen_example` | [examples/mint_all_ata_account_listen_example.rs](examples/mint_all_ata_account_listen_example.rs) |
 
 ### Event Filtering
@@ -204,9 +200,9 @@ use solana_streamer_sdk::streaming::event_parser::common::{filter::EventTypeFilt
 // No filtering - receive all events
 let event_type_filter = None;
 
-// Filter specific event types - only receive PumpSwap buy/sell events
-let event_type_filter = Some(EventTypeFilter { 
-    include: vec![EventType::PumpSwapBuy, EventType::PumpSwapSell] 
+// Filter specific event types - only receive Raydium CPMM swap events
+let event_type_filter = Some(EventTypeFilter {
+    include: vec![EventType::RaydiumCpmmSwapBaseInput, EventType::RaydiumCpmmSwapBaseOutput]
 });
 ```
 
@@ -222,32 +218,34 @@ Event filtering can provide significant performance improvements:
 
 **Trading Bot (Focus on Trade Events)**
 ```rust
-let event_type_filter = Some(EventTypeFilter { 
+let event_type_filter = Some(EventTypeFilter {
     include: vec![
-        EventType::PumpSwapBuy,
-        EventType::PumpSwapSell,
-        EventType::PumpFunTrade,
-        EventType::RaydiumCpmmSwap,
+        EventType::RaydiumCpmmSwapBaseInput,
+        EventType::RaydiumCpmmSwapBaseOutput,
         EventType::RaydiumClmmSwap,
-        EventType::RaydiumAmmV4Swap,
+        EventType::RaydiumClmmSwapV2,
+        EventType::RaydiumAmmV4SwapBaseIn,
+        EventType::RaydiumAmmV4SwapBaseOut,
         ......
-    ] 
+    ]
 });
 ```
 
 **Pool Monitoring (Focus on Liquidity Events)**
 ```rust
-let event_type_filter = Some(EventTypeFilter { 
+let event_type_filter = Some(EventTypeFilter {
     include: vec![
-        EventType::PumpSwapCreatePool,
-        EventType::PumpSwapDeposit,
-        EventType::PumpSwapWithdraw,
         EventType::RaydiumCpmmInitialize,
         EventType::RaydiumCpmmDeposit,
         EventType::RaydiumCpmmWithdraw,
         EventType::RaydiumClmmCreatePool,
+        EventType::RaydiumClmmIncreaseLiquidityV2,
+        EventType::RaydiumClmmDecreaseLiquidityV2,
+        EventType::RaydiumAmmV4Initialize2,
+        EventType::RaydiumAmmV4Deposit,
+        EventType::RaydiumAmmV4Withdraw,
         ......
-    ] 
+    ]
 });
 ```
 
@@ -280,9 +278,6 @@ Note: Multiple subscription attempts on the same client return an error.
 
 ## 🔧 Supported Protocols
 
-- **PumpFun**: Primary meme coin trading platform
-- **PumpSwap**: PumpFun's swap protocol
-- **Bonk**: Token launch platform (letsbonk.fun)
 - **Raydium CPMM**: Raydium's Concentrated Pool Market Maker protocol
 - **Raydium CLMM**: Raydium's Concentrated Liquidity Market Maker protocol
 - **Raydium AMM V4**: Raydium's Automated Market Maker V4 protocol
@@ -323,9 +318,6 @@ src/
 │   │   ├── common/   # Common event parsing tools
 │   │   ├── core/     # Core parsing traits and interfaces
 │   │   ├── protocols/# Protocol-specific parsers
-│   │   │   ├── bonk/ # Bonk event parsing
-│   │   │   ├── pumpfun/ # PumpFun event parsing
-│   │   │   ├── pumpswap/ # PumpSwap event parsing
 │   │   │   ├── raydium_amm_v4/ # Raydium AMM V4 event parsing
 │   │   │   ├── raydium_cpmm/ # Raydium CPMM event parsing
 │   │   │   └── raydium_clmm/ # Raydium CLMM event parsing

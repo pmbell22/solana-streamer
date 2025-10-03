@@ -118,7 +118,7 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
     // let event_type_filter = Some(EventTypeFilter { include: vec![EventType::PumpFunTrade] });
 
     println!("Starting to listen for events, press Ctrl+C to stop...");
-    println!("Monitoring programs: {:?}", account_include);
+    println!("Monitoring programs: {:#?}", account_include);
 
     println!("Starting subscription...");
 
@@ -148,14 +148,14 @@ async fn test_grpc() -> Result<(), Box<dyn std::error::Error>> {
 fn create_event_callback() -> impl Fn(Box<dyn UnifiedEvent>) {
     |event: Box<dyn UnifiedEvent>| {
         println!(
-            "🎉 Event received! Type: {:?}, transaction_index: {:?}",
+            "🎉 Event received! Type: {:#?}, transaction_index: {:#?}",
             event.event_type(),
             event.transaction_index()
         );
         match_event!(event, {
             // -------------------------- block meta -----------------------
             BlockMetaEvent => |e: BlockMetaEvent| {
-                println!("BlockMetaEvent: {:?}", e.metadata.handle_us);
+                println!("BlockMetaEvent: {:#?}", e.metadata.handle_us);
             },
             // -------------------------- raydium_cpmm -----------------------
             RaydiumCpmmSwapEvent => |e: RaydiumCpmmSwapEvent| {

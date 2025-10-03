@@ -251,64 +251,33 @@ impl ArbitrageDetector {
     }
 
     /// Add Raydium AMM V4 swap event
-    pub fn process_raydium_amm_v4_swap(&mut self, event: &RaydiumAmmV4SwapEvent) -> Vec<ArbitrageOpportunity> {
-        // Determine token pair from pool accounts
-        let token_pair = TokenPair::new(
-            event.pool_coin_token_account,
-            event.pool_pc_token_account,
-        );
-
-        let (input_amount, output_amount) = if event.amount_in > 0 {
-            (event.amount_in, event.minimum_amount_out)
-        } else {
-            (event.max_amount_in, event.amount_out)
-        };
-
-        let price = output_amount as f64 / input_amount as f64;
-
-        let quote = PriceQuote {
-            dex: DexType::RaydiumAmmV4,
-            token_pair: token_pair.clone(),
-            input_amount,
-            output_amount,
-            price,
-            timestamp: Self::current_timestamp(),
-            pool_address: Some(event.amm),
-            slippage_bps: None,
-            platform_fee_bps: None,
-            total_fees: None,
-            signature: None,
-        };
-
-        self.add_price_quote(quote)
+    ///
+    /// WARNING: RaydiumAmmV4SwapEvent does NOT contain token mint fields!
+    /// It only has pool_coin_token_account and pool_pc_token_account which are token ACCOUNTS, not MINTS.
+    /// These will NOT match with other DEXes that use mints.
+    ///
+    /// TODO: Implement mint lookup from pool state or account metadata to enable AMM V4 arbitrage detection.
+    pub fn process_raydium_amm_v4_swap(&mut self, _event: &RaydiumAmmV4SwapEvent) -> Vec<ArbitrageOpportunity> {
+        // Skip AMM V4 events as they can't be matched properly with other DEXes
+        // Return empty vec to avoid false arbitrage signals
+        Vec::new()
     }
 
     /// Add Raydium CLMM swap event
-    pub fn process_raydium_clmm_swap(&mut self, event: &RaydiumClmmSwapEvent) -> Vec<ArbitrageOpportunity> {
-        let token_pair = TokenPair::new(event.input_vault, event.output_vault);
-
-        let price = event.other_amount_threshold as f64 / event.amount as f64;
-
-        let quote = PriceQuote {
-            dex: DexType::RaydiumClmm,
-            token_pair: token_pair.clone(),
-            input_amount: event.amount,
-            output_amount: event.other_amount_threshold,
-            price,
-            timestamp: Self::current_timestamp(),
-            pool_address: Some(event.pool_state),
-            slippage_bps: None,
-            platform_fee_bps: None,
-            total_fees: None,
-            signature: None,
-        };
-
-        self.add_price_quote(quote)
+    ///
+    /// WARNING: RaydiumClmmSwapEvent uses vault addresses (input_vault, output_vault), not mints!
+    /// This will NOT match with other DEXes that use mints.
+    /// Use RaydiumClmmSwapV2Event instead which has input_vault_mint/output_vault_mint fields.
+    pub fn process_raydium_clmm_swap(&mut self, _event: &RaydiumClmmSwapEvent) -> Vec<ArbitrageOpportunity> {
+        // Skip CLMM v1 events as they can't be matched properly with other DEXes
+        // Return empty vec to avoid false arbitrage signals
+        Vec::new()
     }
 
     /// Add Raydium CLMM V2 swap event
     pub fn process_raydium_clmm_swap_v2(&mut self, event: &RaydiumClmmSwapV2Event) -> Vec<ArbitrageOpportunity> {
-        let token_pair = TokenPair::new(event.input_vault, event.output_vault);
+        // FIXED: Use the actual token mints instead of vault addresses
+        let token_pair = TokenPair::new(event.input_vault_mint, event.output_vault_mint);
 
         let price = event.other_amount_threshold as f64 / event.amount as f64;
 
@@ -393,10 +362,19 @@ impl ArbitrageDetector {
         self.clean_old_quotes();
 
         // Add quote to cache
-        self.price_cache
+        let quotes_for_pair = self.price_cache
             .entry(token_pair.clone())
-            .or_insert_with(Vec::new)
-            .push(quote.clone());
+            .or_insert_with(Vec::new);
+
+        println!("📊 Adding quote: {:?} - {}/{} = {:.6} (existing quotes: {})",
+            quote.dex,
+            quote.output_amount,
+            quote.input_amount,
+            quote.price,
+            quotes_for_pair.len()
+        );
+
+        quotes_for_pair.push(quote.clone());
 
         // Find arbitrage opportunities
         self.find_arbitrage_opportunities(&token_pair)
@@ -407,6 +385,12 @@ impl ArbitrageDetector {
         let mut opportunities = Vec::new();
 
         if let Some(quotes) = self.price_cache.get(token_pair) {
+            println!("🔍 Checking {} quotes for token pair {}/{}",
+                quotes.len(),
+                token_pair.base,
+                token_pair.quote
+            );
+
             // Compare each pair of quotes from different DEXes
             for (i, quote1) in quotes.iter().enumerate() {
                 for quote2 in quotes.iter().skip(i + 1) {
@@ -420,17 +404,35 @@ impl ArbitrageDetector {
                     if now - quote1.timestamp > self.max_quote_age_secs
                         || now - quote2.timestamp > self.max_quote_age_secs
                     {
+                        println!("⏰ Quotes too old: age1={}, age2={} (max={})",
+                            now - quote1.timestamp,
+                            now - quote2.timestamp,
+                            self.max_quote_age_secs
+                        );
                         continue;
                     }
 
                     // Calculate profit potential
                     if let Some(opportunity) = self.calculate_arbitrage(quote1, quote2) {
+                        println!("💡 Found price difference: {:?} @ {:.6} vs {:?} @ {:.6} = {:.2}% profit",
+                            quote1.dex,
+                            quote1.price,
+                            quote2.dex,
+                            quote2.price,
+                            opportunity.profit_percentage
+                        );
+
                         if opportunity.profit_percentage >= self.min_profit_threshold {
+                            println!("✅ Meets threshold! Adding opportunity");
                             opportunities.push(opportunity);
+                        } else {
+                            println!("❌ Below {:.2}% threshold", self.min_profit_threshold);
                         }
                     }
                 }
             }
+        } else {
+            println!("📭 No quotes found for this token pair yet");
         }
 
         opportunities

@@ -260,18 +260,19 @@ impl_unified_event!(RaydiumClmmTickArrayStateAccountEvent,);
 
 /// 事件鉴别器常量
 pub mod discriminators {
-    // 指令鉴别器
-    pub const SWAP: &[u8] = &[248, 198, 158, 145, 225, 117, 135, 200];
-    pub const SWAP_V2: &[u8] = &[43, 4, 237, 11, 26, 201, 30, 98];
-    pub const CLOSE_POSITION: &[u8] = &[123, 134, 81, 0, 49, 68, 98, 98];
-    pub const INCREASE_LIQUIDITY_V2: &[u8] = &[133, 29, 89, 223, 69, 238, 176, 10];
-    pub const DECREASE_LIQUIDITY_V2: &[u8] = &[58, 127, 188, 62, 79, 82, 196, 96];
-    pub const CREATE_POOL: &[u8] = &[233, 146, 209, 142, 207, 104, 64, 188];
-    pub const OPEN_POSITION_WITH_TOKEN_22_NFT: &[u8] = &[77, 255, 174, 82, 125, 29, 201, 46];
-    pub const OPEN_POSITION_V2: &[u8] = &[77, 184, 74, 214, 112, 86, 241, 199];
+    // 指令鉴别器 (calculated from SHA256("global:instruction_name"))
+    // FIXED: Corrected discriminators to match Anchor calculation
+    pub const SWAP: &[u8] = &[248, 198, 158, 145, 225, 117, 135, 200];             // swap (correct)
+    pub const SWAP_V2: &[u8] = &[114, 113, 45, 226, 179, 239, 106, 225];           // swapV2 (FIXED)
+    pub const CLOSE_POSITION: &[u8] = &[123, 134, 81, 0, 49, 68, 98, 98];          // closePosition (verify)
+    pub const INCREASE_LIQUIDITY_V2: &[u8] = &[67, 78, 196, 105, 211, 25, 62, 252]; // increaseLiquidityV2 (FIXED)
+    pub const DECREASE_LIQUIDITY_V2: &[u8] = &[82, 1, 46, 234, 207, 210, 241, 169]; // decreaseLiquidityV2 (FIXED)
+    pub const CREATE_POOL: &[u8] = &[244, 236, 117, 4, 18, 0, 62, 88];             // createPool (FIXED)
+    pub const OPEN_POSITION_WITH_TOKEN_22_NFT: &[u8] = &[77, 255, 174, 82, 125, 29, 201, 46]; // verify
+    pub const OPEN_POSITION_V2: &[u8] = &[218, 45, 162, 175, 86, 17, 83, 121];     // openPositionV2 (FIXED)
 
-    // 账号鉴别器
-    pub const AMM_CONFIG: &[u8] = &[218, 244, 33, 104, 203, 203, 43, 111];
-    pub const POOL_STATE: &[u8] = &[247, 237, 227, 245, 215, 195, 222, 70];
-    pub const TICK_ARRAY_STATE: &[u8] = &[192, 155, 85, 205, 49, 249, 129, 42];
+    // 账号鉴别器 (calculated from SHA256("account:account_name"))
+    pub const AMM_CONFIG: &[u8] = &[218, 244, 33, 104, 203, 203, 43, 111];    // AmmConfig (correct)
+    pub const POOL_STATE: &[u8] = &[247, 237, 227, 245, 215, 195, 222, 70];   // PoolState (correct)
+    pub const TICK_ARRAY_STATE: &[u8] = &[192, 155, 85, 205, 49, 249, 129, 42]; // TickArrayState (verify)
 }

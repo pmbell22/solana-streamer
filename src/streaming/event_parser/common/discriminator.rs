@@ -93,4 +93,15 @@ mod tests {
         println!("SwapEvent: {:?}", event_discriminator("SwapEvent"));
         println!("LpChangeEvent: {:?}", event_discriminator("LpChangeEvent"));
     }
+
+    #[test]
+    fn test_raydium_clmm_discriminators() {
+        // Test Raydium CLMM instruction discriminators
+        println!("swap: {:?}", instruction_discriminator("swap"));
+        println!("swapV2: {:?}", instruction_discriminator("swapV2"));
+        println!("createPool: {:?}", instruction_discriminator("createPool"));
+        println!("openPositionV2: {:?}", instruction_discriminator("openPositionV2"));
+        println!("increaseLiquidityV2: {:?}", instruction_discriminator("increaseLiquidityV2"));
+        println!("decreaseLiquidityV2: {:?}", instruction_discriminator("decreaseLiquidityV2"));
+    }
 }

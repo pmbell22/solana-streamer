@@ -2,7 +2,7 @@ use borsh::BorshDeserialize;
 use solana_sdk::pubkey::Pubkey;
 
 use crate::streaming::event_parser::{
-    common::{read_u64_le, read_u8, EventMetadata, EventType, ProtocolType},
+    common::{read_u64_le, read_u16_le, read_u8, EventMetadata, EventType, ProtocolType},
     core::event_parser::GenericEventParseConfig,
     protocols::jupiter_agg_v6::{
         discriminators, types::{JupiterSwapEvent, JupiterFeeEvent}, JupiterAggV6RouteEvent,
@@ -71,16 +71,16 @@ fn parse_route_instruction(
 
     // Each RoutePlanStep is variable size due to nested Swap enum
     // For simplicity, we'll estimate and look for our fixed fields at the end
-    // The last 25 bytes should be: in_amount(8) + quoted_out_amount(8) + slippage_bps(8) + platform_fee_bps(1)
-    if data.len() < 25 {
+    // The last 19 bytes should be: in_amount(8) + quoted_out_amount(8) + slippage_bps(2) + platform_fee_bps(1)
+    if data.len() < 19 {
         return None;
     }
 
-    let fixed_data_start = data.len() - 25;
+    let fixed_data_start = data.len() - 19;
     let in_amount = read_u64_le(data, fixed_data_start)?;
     let quoted_out_amount = read_u64_le(data, fixed_data_start + 8)?;
-    let slippage_bps = read_u64_le(data, fixed_data_start + 16)?;
-    let platform_fee_bps = read_u8(data, fixed_data_start + 24)?;
+    let slippage_bps = read_u16_le(data, fixed_data_start + 16)? as u64;
+    let platform_fee_bps = read_u8(data, fixed_data_start + 18)?;
 
     Some(Box::new(JupiterAggV6RouteEvent {
         metadata,
@@ -118,16 +118,16 @@ fn parse_exact_out_route_instruction(
 
     let _vec_len = u32::from_le_bytes([data[0], data[1], data[2], data[3]]) as usize;
 
-    // The last 25 bytes should be: out_amount(8) + quoted_in_amount(8) + slippage_bps(8) + platform_fee_bps(1)
-    if data.len() < 25 {
+    // The last 19 bytes should be: out_amount(8) + quoted_in_amount(8) + slippage_bps(2) + platform_fee_bps(1)
+    if data.len() < 19 {
         return None;
     }
 
-    let fixed_data_start = data.len() - 25;
+    let fixed_data_start = data.len() - 19;
     let out_amount = read_u64_le(data, fixed_data_start)?;
     let quoted_in_amount = read_u64_le(data, fixed_data_start + 8)?;
-    let slippage_bps = read_u64_le(data, fixed_data_start + 16)?;
-    let platform_fee_bps = read_u8(data, fixed_data_start + 24)?;
+    let slippage_bps = read_u16_le(data, fixed_data_start + 16)? as u64;
+    let platform_fee_bps = read_u8(data, fixed_data_start + 18)?;
 
     Some(Box::new(JupiterAggV6ExactOutRouteEvent {
         metadata,

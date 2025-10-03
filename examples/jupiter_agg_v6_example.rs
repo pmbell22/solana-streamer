@@ -121,10 +121,16 @@ fn create_event_callback() -> impl Fn(Box<dyn UnifiedEvent>) {
             "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
         ];
 
+        // Get metadata for transaction info
+        let sig_str = format!("{}", event.signature()).chars().take(8).collect::<String>();
+        let tx_idx = event.transaction_index().map(|i| i.to_string()).unwrap_or_else(|| "N/A".to_string());
+
         println!(
-            "🔔 Jupiter Swap Event | Type: {:?} | TX: {:?}",
+            "🔔 Jupiter Event | Type: {:?} | Sig: {}... | TX#: {} | Slot: {}",
             event.event_type(),
-            event.transaction_index()
+            sig_str,
+            tx_idx,
+            event.slot()
         );
 
         match_event!(event, {

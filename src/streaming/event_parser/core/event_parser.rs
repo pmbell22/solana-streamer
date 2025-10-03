@@ -8,6 +8,7 @@ use crate::streaming::{
             EventMetadata, EventType, ProtocolType,
         },
         protocols::{
+            jupiter_agg_v6::parser::JUPITER_AGG_V6_PROGRAM_ID,
             raydium_amm_v4::parser::RAYDIUM_AMM_V4_PROGRAM_ID,
             raydium_clmm::parser::RAYDIUM_CLMM_PROGRAM_ID,
             raydium_cpmm::parser::RAYDIUM_CPMM_PROGRAM_ID,
@@ -97,7 +98,7 @@ pub static EVENT_PARSERS: LazyLock<HashMap<Protocol, (Pubkey, &[GenericEventPars
     LazyLock::new(|| {
         // 预分配容量，避免动态扩容
         let mut parsers: HashMap<Protocol, (Pubkey, &[GenericEventParseConfig])> =
-            HashMap::with_capacity(3);
+            HashMap::with_capacity(4);
         parsers.insert(
             Protocol::RaydiumCpmm,
             (
@@ -117,6 +118,13 @@ pub static EVENT_PARSERS: LazyLock<HashMap<Protocol, (Pubkey, &[GenericEventPars
             (
                 RAYDIUM_AMM_V4_PROGRAM_ID,
                 crate::streaming::event_parser::protocols::raydium_amm_v4::parser::CONFIGS,
+            ),
+        );
+        parsers.insert(
+            Protocol::JupiterAggV6,
+            (
+                JUPITER_AGG_V6_PROGRAM_ID,
+                crate::streaming::event_parser::protocols::jupiter_agg_v6::parser::CONFIGS,
             ),
         );
         parsers

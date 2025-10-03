@@ -61,6 +61,7 @@ pub enum ProtocolType {
     RaydiumCpmm,
     RaydiumClmm,
     RaydiumAmmV4,
+    JupiterAggV6,
     Common,
 }
 
@@ -94,6 +95,10 @@ pub enum EventType {
     RaydiumAmmV4Initialize2,
     RaydiumAmmV4Withdraw,
     RaydiumAmmV4WithdrawPnl,
+
+    // Jupiter Aggregator V6 events
+    JupiterAggV6Route,
+    JupiterAggV6ExactOutRoute,
 
     // Account events
     AccountRaydiumAmmV4AmmInfo,
@@ -151,6 +156,8 @@ impl fmt::Display for EventType {
             EventType::RaydiumAmmV4Initialize2 => write!(f, "RaydiumAmmV4Initialize2"),
             EventType::RaydiumAmmV4Withdraw => write!(f, "RaydiumAmmV4Withdraw"),
             EventType::RaydiumAmmV4WithdrawPnl => write!(f, "RaydiumAmmV4WithdrawPnl"),
+            EventType::JupiterAggV6Route => write!(f, "JupiterAggV6Route"),
+            EventType::JupiterAggV6ExactOutRoute => write!(f, "JupiterAggV6ExactOutRoute"),
             EventType::AccountRaydiumAmmV4AmmInfo => write!(f, "AccountRaydiumAmmV4AmmInfo"),
             EventType::AccountRaydiumClmmAmmConfig => write!(f, "AccountRaydiumClmmAmmConfig"),
             EventType::AccountRaydiumClmmPoolState => write!(f, "AccountRaydiumClmmPoolState"),

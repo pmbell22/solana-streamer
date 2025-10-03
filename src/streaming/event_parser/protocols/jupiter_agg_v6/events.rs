@@ -58,9 +58,43 @@ pub struct JupiterAggV6ExactOutRouteEvent {
 
 impl_unified_event!(JupiterAggV6ExactOutRouteEvent,);
 
+/// Jupiter Aggregator V6 Swap Event (emitted during actual swap execution)
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize)]
+pub struct JupiterAggV6SwapEvent {
+    #[borsh(skip)]
+    pub metadata: EventMetadata,
+
+    // Swap event data
+    pub amm: Pubkey,
+    pub input_mint: Pubkey,
+    pub input_amount: u64,
+    pub output_mint: Pubkey,
+    pub output_amount: u64,
+}
+
+impl_unified_event!(JupiterAggV6SwapEvent,);
+
+/// Jupiter Aggregator V6 Fee Event (emitted during swap execution)
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize)]
+pub struct JupiterAggV6FeeEvent {
+    #[borsh(skip)]
+    pub metadata: EventMetadata,
+
+    // Fee event data
+    pub account: Pubkey,
+    pub mint: Pubkey,
+    pub amount: u64,
+}
+
+impl_unified_event!(JupiterAggV6FeeEvent,);
+
 /// Event discriminators
 pub mod discriminators {
     // Instruction discriminators
     pub const ROUTE: &[u8] = &[229, 23, 203, 151, 122, 227, 173, 42];
     pub const EXACT_OUT_ROUTE: &[u8] = &[208, 51, 239, 151, 123, 43, 237, 92];
+
+    // Event discriminators (Anchor event: first 8 bytes of sha256("event:<EventName>"))
+    pub const SWAP_EVENT: &[u8] = &[100, 59, 61, 98, 210, 113, 235, 216];
+    pub const FEE_EVENT: &[u8] = &[233, 206, 14, 65, 226, 150, 7, 171];
 }

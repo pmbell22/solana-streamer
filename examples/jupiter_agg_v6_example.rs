@@ -8,6 +8,7 @@ use solana_streamer_sdk::{
                     parser::JUPITER_AGG_V6_PROGRAM_ID,
                     JupiterAggV6RouteEvent,
                     JupiterAggV6ExactOutRouteEvent,
+                    JupiterAggV6SwapEvent,
                 },
                 BlockMetaEvent,
             },
@@ -72,10 +73,15 @@ async fn test_jupiter_agg_v6_grpc() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Event filtering - Include Jupiter Aggregator V6 event types
+    // Note: Currently only Route events are captured (instruction-based).
+    // SwapEvents (log-based) require additional log parsing infrastructure.
+    // Route events contain: in_amount, quoted_out_amount, source_mint, destination_mint
+    // which is sufficient for arbitrage opportunity detection.
     let event_type_filter = Some(EventTypeFilter {
         include: vec![
             EventType::JupiterAggV6Route,
             EventType::JupiterAggV6ExactOutRoute,
+            // EventType::JupiterAggV6Swap,  // Requires log parsing (not yet implemented)
         ],
     });
 
@@ -109,40 +115,82 @@ async fn test_jupiter_agg_v6_grpc() -> Result<(), Box<dyn std::error::Error>> {
 
 fn create_event_callback() -> impl Fn(Box<dyn UnifiedEvent>) {
     |event: Box<dyn UnifiedEvent>| {
+        // Define target mints to filter (SOL and USDC) - uncomment filter code below to use
+        let _target_mints = vec![
+            "So11111111111111111111111111111111111111112",  // SOL (Wrapped SOL)
+            "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", // USDC
+        ];
+
         println!(
-            "🎉 Jupiter Event received! Type: {:?}, transaction_index: {:?}",
+            "🔔 Jupiter Swap Event | Type: {:?} | TX: {:?}",
             event.event_type(),
             event.transaction_index()
         );
+
         match_event!(event, {
             // -------------------------- block meta -----------------------
             BlockMetaEvent => |e: BlockMetaEvent| {
-                println!("BlockMetaEvent: {:?}", e.metadata.handle_us);
+                println!("BlockMeta | Handle Time: {} μs", e.metadata.handle_us);
             },
-            // -------------------------- Jupiter Aggregator V6 -----------------------
+            // -------------------------- Jupiter Aggregator V6 Route (Swap Intent) -----------------------
             JupiterAggV6RouteEvent => |e: JupiterAggV6RouteEvent| {
-                println!("JupiterAggV6RouteEvent:");
-                println!("  In Amount: {}", e.in_amount);
-                println!("  Quoted Out Amount: {}", e.quoted_out_amount);
-                println!("  Slippage BPS: {}", e.slippage_bps);
-                println!("  Platform Fee BPS: {}", e.platform_fee_bps);
-                println!("  Source Mint: {}", e.source_mint);
-                println!("  Destination Mint: {}", e.destination_mint);
-                println!("  User Source Token Account: {}", e.user_source_token_account);
-                println!("  User Destination Token Account: {}", e.user_destination_token_account);
-                println!("  Full event: {e:?}");
+                // Uncomment to filter for specific token pairs
+                // let source_mint_str = e.source_mint.to_string();
+                // let dest_mint_str = e.destination_mint.to_string();
+                // if !target_mints.contains(&source_mint_str.as_str()) ||
+                //    !target_mints.contains(&dest_mint_str.as_str()) {
+                //     return; // Skip this event
+                // }
+
+                println!("═══════════════════════════════════════════════════════");
+                println!("JUPITER SWAP (Route)");
+                println!("═══════════════════════════════════════════════════════");
+                println!("  Swap: {} → {}", e.source_mint, e.destination_mint);
+                println!("  Input Amount: {}", e.in_amount);
+                println!("  Quoted Output: {}", e.quoted_out_amount);
+                println!("  Slippage: {} bps", e.slippage_bps);
+                println!("  Platform Fee: {} bps", e.platform_fee_bps);
+                println!("  User Accounts:");
+                println!("    Source: {}", e.user_source_token_account);
+                println!("    Dest:   {}", e.user_destination_token_account);
+                println!("  Signature: {}", e.metadata.signature);
+                println!("  Slot: {}", e.metadata.slot);
+                println!("═══════════════════════════════════════════════════════");
             },
             JupiterAggV6ExactOutRouteEvent => |e: JupiterAggV6ExactOutRouteEvent| {
-                println!("JupiterAggV6ExactOutRouteEvent:");
-                println!("  Out Amount: {}", e.out_amount);
-                println!("  Quoted In Amount: {}", e.quoted_in_amount);
-                println!("  Slippage BPS: {}", e.slippage_bps);
-                println!("  Platform Fee BPS: {}", e.platform_fee_bps);
-                println!("  Source Mint: {}", e.source_mint);
-                println!("  Destination Mint: {}", e.destination_mint);
-                println!("  User Source Token Account: {}", e.user_source_token_account);
-                println!("  User Destination Token Account: {}", e.user_destination_token_account);
-                println!("  Full event: {e:?}");
+                // Uncomment to filter for specific token pairs
+                // let source_mint_str = e.source_mint.to_string();
+                // let dest_mint_str = e.destination_mint.to_string();
+                // if !target_mints.contains(&source_mint_str.as_str()) ||
+                //    !target_mints.contains(&dest_mint_str.as_str()) {
+                //     return; // Skip this event
+                // }
+
+                println!("═══════════════════════════════════════════════════════");
+                println!("JUPITER SWAP (Exact Out Route)");
+                println!("═══════════════════════════════════════════════════════");
+                println!("  Swap: {} → {}", e.source_mint, e.destination_mint);
+                println!("  Quoted Input: {}", e.quoted_in_amount);
+                println!("  Output Amount: {}", e.out_amount);
+                println!("  Slippage: {} bps", e.slippage_bps);
+                println!("  Platform Fee: {} bps", e.platform_fee_bps);
+                println!("  User Accounts:");
+                println!("    Source: {}", e.user_source_token_account);
+                println!("    Dest:   {}", e.user_destination_token_account);
+                println!("  Signature: {}", e.metadata.signature);
+                println!("  Slot: {}", e.metadata.slot);
+                println!("═══════════════════════════════════════════════════════");
+            },
+            JupiterAggV6SwapEvent => |e: JupiterAggV6SwapEvent| {
+                // This event type requires log parsing (not yet implemented)
+                println!("═══════════════════════════════════════════════════════");
+                println!("JUPITER SWAP (Execution Log - Not Yet Implemented)");
+                println!("═══════════════════════════════════════════════════════");
+                println!("  AMM: {}", e.amm);
+                println!("  Input: {} {}", e.input_amount, e.input_mint);
+                println!("  Output: {} {}", e.output_amount, e.output_mint);
+                println!("  Signature: {}", e.metadata.signature);
+                println!("═══════════════════════════════════════════════════════");
             },
         });
     }

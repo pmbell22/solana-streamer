@@ -3,4 +3,4 @@ pub mod parser;
 pub mod types;
 
 pub use events::discriminators;
-pub use events::{JupiterAggV6RouteEvent, JupiterAggV6ExactOutRouteEvent};
+pub use events::{JupiterAggV6RouteEvent, JupiterAggV6ExactOutRouteEvent, JupiterAggV6SwapEvent, JupiterAggV6FeeEvent};

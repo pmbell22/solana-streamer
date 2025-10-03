@@ -99,6 +99,8 @@ pub enum EventType {
     // Jupiter Aggregator V6 events
     JupiterAggV6Route,
     JupiterAggV6ExactOutRoute,
+    JupiterAggV6Swap,
+    JupiterAggV6Fee,
 
     // Account events
     AccountRaydiumAmmV4AmmInfo,
@@ -158,6 +160,8 @@ impl fmt::Display for EventType {
             EventType::RaydiumAmmV4WithdrawPnl => write!(f, "RaydiumAmmV4WithdrawPnl"),
             EventType::JupiterAggV6Route => write!(f, "JupiterAggV6Route"),
             EventType::JupiterAggV6ExactOutRoute => write!(f, "JupiterAggV6ExactOutRoute"),
+            EventType::JupiterAggV6Swap => write!(f, "JupiterAggV6Swap"),
+            EventType::JupiterAggV6Fee => write!(f, "JupiterAggV6Fee"),
             EventType::AccountRaydiumAmmV4AmmInfo => write!(f, "AccountRaydiumAmmV4AmmInfo"),
             EventType::AccountRaydiumClmmAmmConfig => write!(f, "AccountRaydiumClmmAmmConfig"),
             EventType::AccountRaydiumClmmPoolState => write!(f, "AccountRaydiumClmmPoolState"),

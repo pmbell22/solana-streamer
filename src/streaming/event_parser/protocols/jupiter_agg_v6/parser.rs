@@ -1,10 +1,12 @@
+use borsh::BorshDeserialize;
 use solana_sdk::pubkey::Pubkey;
 
 use crate::streaming::event_parser::{
     common::{read_u64_le, read_u8, EventMetadata, EventType, ProtocolType},
     core::event_parser::GenericEventParseConfig,
     protocols::jupiter_agg_v6::{
-        discriminators, JupiterAggV6RouteEvent, JupiterAggV6ExactOutRouteEvent,
+        discriminators, types::{JupiterSwapEvent, JupiterFeeEvent}, JupiterAggV6RouteEvent,
+        JupiterAggV6ExactOutRouteEvent, JupiterAggV6SwapEvent, JupiterAggV6FeeEvent,
     },
     UnifiedEvent,
 };
@@ -144,4 +146,128 @@ fn parse_exact_out_route_instruction(
         event_authority: accounts[8],
         program: accounts[9],
     }))
+}
+
+/// Parse SwapEvent from transaction logs
+/// This is an Anchor event emitted during swap execution
+pub fn parse_swap_event_from_log(
+    log_data: &[u8],
+    metadata: EventMetadata,
+) -> Option<Box<dyn UnifiedEvent>> {
+    // Log data format: 8-byte discriminator + borsh-encoded event data
+    if log_data.len() < 8 {
+        return None;
+    }
+
+    // Verify discriminator
+    if &log_data[0..8] != discriminators::SWAP_EVENT {
+        return None;
+    }
+
+    // Deserialize the event data (skip discriminator)
+    let swap_event = JupiterSwapEvent::deserialize(&mut &log_data[8..]).ok()?;
+
+    Some(Box::new(JupiterAggV6SwapEvent {
+        metadata,
+        amm: swap_event.amm,
+        input_mint: swap_event.input_mint,
+        input_amount: swap_event.input_amount,
+        output_mint: swap_event.output_mint,
+        output_amount: swap_event.output_amount,
+    }))
+}
+
+/// Parse FeeEvent from transaction logs
+/// This is an Anchor event emitted during fee collection
+pub fn parse_fee_event_from_log(
+    log_data: &[u8],
+    metadata: EventMetadata,
+) -> Option<Box<dyn UnifiedEvent>> {
+    // Log data format: 8-byte discriminator + borsh-encoded event data
+    if log_data.len() < 8 {
+        return None;
+    }
+
+    // Verify discriminator
+    if &log_data[0..8] != discriminators::FEE_EVENT {
+        return None;
+    }
+
+    // Deserialize the event data (skip discriminator)
+    let fee_event = JupiterFeeEvent::deserialize(&mut &log_data[8..]).ok()?;
+
+    Some(Box::new(JupiterAggV6FeeEvent {
+        metadata,
+        account: fee_event.account,
+        mint: fee_event.mint,
+        amount: fee_event.amount,
+    }))
+}
+
+/// Parse SwapEvents and FeeEvents from transaction log messages
+/// Looks for "Program data: " prefix and decodes base64 anchor events
+pub fn parse_events_from_logs(
+    log_messages: &[String],
+    signature: solana_sdk::signature::Signature,
+    slot: u64,
+    block_time: Option<prost_types::Timestamp>,
+    recv_us: i64,
+    transaction_index: Option<u64>,
+) -> Vec<Box<dyn UnifiedEvent>> {
+    use crate::streaming::event_parser::common::utils::extract_program_data;
+
+    let mut events = Vec::new();
+
+    for log in log_messages {
+        if let Some(data_str) = extract_program_data(log) {
+            // Decode base64 data
+            if let Ok(log_data) = solana_sdk::bs58::decode(data_str).into_vec() {
+                let timestamp = block_time.unwrap_or(prost_types::Timestamp { seconds: 0, nanos: 0 });
+                let block_time_ms = timestamp.seconds * 1000 + (timestamp.nanos as i64) / 1_000_000;
+
+                // Try parsing as SwapEvent
+                if log_data.len() >= 8 && &log_data[0..8] == discriminators::SWAP_EVENT {
+                    let metadata = EventMetadata::new(
+                        signature,
+                        slot,
+                        timestamp.seconds,
+                        block_time_ms,
+                        ProtocolType::JupiterAggV6,
+                        EventType::JupiterAggV6Swap,
+                        JUPITER_AGG_V6_PROGRAM_ID,
+                        0,
+                        None,
+                        recv_us,
+                        transaction_index,
+                    );
+
+                    if let Some(event) = parse_swap_event_from_log(&log_data, metadata) {
+                        events.push(event);
+                    }
+                }
+                // Try parsing as FeeEvent
+                else if log_data.len() >= 8 && &log_data[0..8] == discriminators::FEE_EVENT {
+                    let metadata = EventMetadata::new(
+                        signature,
+                        slot,
+                        timestamp.seconds,
+                        block_time_ms,
+                        ProtocolType::JupiterAggV6,
+                        EventType::JupiterAggV6Fee,
+                        JUPITER_AGG_V6_PROGRAM_ID,
+                        0,
+                        None,
+                        recv_us,
+                        transaction_index,
+                    );
+
+                    if let Some(event) = parse_fee_event_from_log(&log_data, metadata) {
+                        events.push(event);
+                    }
+                }
+            }
+        }
+    }
+
+    events
 }

@@ -547,6 +547,10 @@ mod tests {
             price: 1.1,
             timestamp: ArbitrageDetector::current_timestamp(),
             pool_address: None,
+            slippage_bps: None,
+            platform_fee_bps: None,
+            total_fees: None,
+            signature: None,
         };
 
         // Add Raydium quote with higher price
@@ -558,6 +562,10 @@ mod tests {
             price: 1.15,
             timestamp: ArbitrageDetector::current_timestamp(),
             pool_address: None,
+            slippage_bps: None,
+            platform_fee_bps: None,
+            total_fees: None,
+            signature: None,
         };
 
         let opps1 = detector.add_price_quote(jupiter_quote);

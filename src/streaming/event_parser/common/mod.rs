@@ -2,6 +2,7 @@ pub mod types;
 pub mod utils;
 pub mod filter;
 pub mod high_performance_clock;
+pub mod discriminator;
 
 /// 自动生成UnifiedEvent trait实现的宏
 #[macro_export]

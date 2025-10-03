@@ -146,14 +146,19 @@ impl_unified_event!(RaydiumCpmmPoolStateAccountEvent,);
 
 /// 事件鉴别器常量
 pub mod discriminators {
-    // 指令鉴别器
-    pub const SWAP_BASE_IN: &[u8] = &[143, 190, 90, 218, 196, 30, 51, 222];
-    pub const SWAP_BASE_OUT: &[u8] = &[55, 217, 98, 86, 163, 74, 180, 173];
-    pub const DEPOSIT: &[u8] = &[242, 35, 198, 137, 82, 225, 242, 182];
-    pub const INITIALIZE: &[u8] = &[175, 175, 109, 31, 13, 152, 155, 237];
-    pub const WITHDRAW: &[u8] = &[183, 18, 70, 156, 148, 109, 161, 34];
+    // 指令鉴别器 (calculated from SHA256("global:instruction_name"))
+    // UPDATED: Fixed swapBaseInput and swapBaseOutput to use correct camelCase names
+    pub const SWAP_BASE_IN: &[u8] = &[235, 33, 127, 212, 246, 180, 129, 99];  // swapBaseInput
+    pub const SWAP_BASE_OUT: &[u8] = &[46, 155, 21, 238, 193, 118, 150, 246]; // swapBaseOutput
+    pub const DEPOSIT: &[u8] = &[242, 35, 198, 137, 82, 225, 242, 182];       // deposit
+    pub const INITIALIZE: &[u8] = &[175, 175, 109, 31, 13, 152, 155, 237];    // initialize
+    pub const WITHDRAW: &[u8] = &[183, 18, 70, 156, 148, 109, 161, 34];       // withdraw
 
-    // 账号鉴别器
-    pub const AMM_CONFIG: &[u8] = &[218, 244, 33, 104, 203, 203, 43, 111];
-    pub const POOL_STATE: &[u8] = &[247, 237, 227, 245, 215, 195, 222, 70];
+    // 账号鉴别器 (calculated from SHA256("account:account_name"))
+    pub const AMM_CONFIG: &[u8] = &[218, 244, 33, 104, 203, 203, 43, 111];    // AmmConfig
+    pub const POOL_STATE: &[u8] = &[247, 237, 227, 245, 215, 195, 222, 70];   // PoolState
+
+    // 事件鉴别器 (calculated from SHA256("event:event_name"))
+    pub const SWAP_EVENT: &[u8] = &[64, 198, 205, 232, 38, 8, 113, 226];      // SwapEvent
+    pub const LP_CHANGE_EVENT: &[u8] = &[121, 163, 205, 201, 57, 218, 117, 60]; // LpChangeEvent
 }

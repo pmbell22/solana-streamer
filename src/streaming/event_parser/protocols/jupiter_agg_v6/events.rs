@@ -90,11 +90,12 @@ impl_unified_event!(JupiterAggV6FeeEvent,);
 
 /// Event discriminators
 pub mod discriminators {
-    // Instruction discriminators
+    // Instruction discriminators (from IDL)
     pub const ROUTE: &[u8] = &[229, 23, 203, 151, 122, 227, 173, 42];
     pub const EXACT_OUT_ROUTE: &[u8] = &[208, 51, 239, 151, 123, 43, 237, 92];
 
     // Event discriminators (Anchor event: first 8 bytes of sha256("event:<EventName>"))
-    pub const SWAP_EVENT: &[u8] = &[100, 59, 61, 98, 210, 113, 235, 216];
-    pub const FEE_EVENT: &[u8] = &[233, 206, 14, 65, 226, 150, 7, 171];
+    // Updated to match IDL discriminators
+    pub const SWAP_EVENT: &[u8] = &[64, 198, 205, 232, 38, 8, 113, 226];
+    pub const FEE_EVENT: &[u8] = &[73, 79, 78, 127, 184, 213, 13, 220];
 }

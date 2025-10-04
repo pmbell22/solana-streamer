@@ -39,9 +39,12 @@ impl DexStreamParser {
     /// Create parser with all supported protocols
     pub fn new_all_protocols() -> Result<Self> {
         Self::new(vec![
-            DexProtocol::JupiterV6,
+            // DexProtocol::JupiterV6,
             DexProtocol::RaydiumClmm,
+            // DexProtocol::RaydiumCpmm,
+            // DexProtocol::RaydiumAmmV4,
             DexProtocol::OrcaWhirlpool,
+            DexProtocol::MeteoraDlmm,
         ])
     }
 
@@ -170,15 +173,19 @@ impl DexStreamParser {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::str::FromStr;
 
     #[test]
     fn test_create_parser() {
         let parser = DexStreamParser::new_all_protocols();
+        if let Err(e) = &parser {
+            eprintln!("Parser creation failed: {:?}", e);
+        }
         assert!(parser.is_ok());
 
         let parser = parser.unwrap();
         let program_ids = parser.supported_program_ids();
-        assert_eq!(program_ids.len(), 3);
+        assert_eq!(program_ids.len(), 6);
     }
 
     #[test]

@@ -45,7 +45,10 @@ fn compute_anchor_discriminator(preimage: &str) -> Vec<u8> {
 pub enum DexProtocol {
     JupiterV6,
     RaydiumClmm,
+    RaydiumCpmm,
+    RaydiumAmmV4,
     OrcaWhirlpool,
+    MeteoraDlmm,
 }
 
 impl DexProtocol {
@@ -53,7 +56,10 @@ impl DexProtocol {
         match self {
             DexProtocol::JupiterV6 => "Jupiter Aggregator V6",
             DexProtocol::RaydiumClmm => "Raydium CLMM",
+            DexProtocol::RaydiumCpmm => "Raydium CPMM",
+            DexProtocol::RaydiumAmmV4 => "Raydium AMM V4",
             DexProtocol::OrcaWhirlpool => "Orca Whirlpool",
+            DexProtocol::MeteoraDlmm => "Meteora DLMM",
         }
     }
 
@@ -61,7 +67,10 @@ impl DexProtocol {
         match self {
             DexProtocol::JupiterV6 => "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
             DexProtocol::RaydiumClmm => "CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK",
+            DexProtocol::RaydiumCpmm => "CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C",
+            DexProtocol::RaydiumAmmV4 => "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
             DexProtocol::OrcaWhirlpool => "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+            DexProtocol::MeteoraDlmm => "LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo",
         }
     }
 
@@ -69,7 +78,10 @@ impl DexProtocol {
         match self {
             DexProtocol::JupiterV6 => "dex-idl-parser/idls/jupiter_agg_v6.json",
             DexProtocol::RaydiumClmm => "dex-idl-parser/idls/raydium_clmm.json",
+            DexProtocol::RaydiumCpmm => "dex-idl-parser/idls/raydium_amm.json",
+            DexProtocol::RaydiumAmmV4 => "dex-idl-parser/idls/raydium_amm_v4.json",
             DexProtocol::OrcaWhirlpool => "dex-idl-parser/idls/orca_whirlpool.json",
+            DexProtocol::MeteoraDlmm => "dex-idl-parser/idls/meteora.json",
         }
     }
 }

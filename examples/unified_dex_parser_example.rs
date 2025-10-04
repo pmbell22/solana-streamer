@@ -584,8 +584,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             }
                         };
 
-                        let events = dex_parser.parse_from_grpc_transaction(grpc_tx, slot, block_time);
-
                         // Identify which DEX protocol this account belongs to
                         let protocol = if owner.to_string() == DexProtocol::OrcaWhirlpool.program_id() {
                             Some(DexProtocol::OrcaWhirlpool)

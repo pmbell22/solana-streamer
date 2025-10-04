@@ -371,6 +371,75 @@ impl YellowstoneGrpc {
 
         Ok(())
     }
+
+    /// Subscribe to raw gRPC events with custom callback
+    ///
+    /// This provides low-level access to raw gRPC update messages for custom parsing.
+    /// Use this when you need direct access to transaction data for custom parsers.
+    ///
+    /// # Parameters
+    /// * `transaction_filter` - Transaction filters
+    /// * `account_filter` - Account filters
+    /// * `commitment` - Optional commitment level
+    /// * `callback` - Callback receiving raw SubscribeUpdate messages
+    ///
+    /// # Returns
+    /// Returns `AnyResult<()>` on success
+    pub async fn subscribe_raw<F>(
+        &self,
+        transaction_filter: Vec<TransactionFilter>,
+        account_filter: Vec<AccountFilter>,
+        commitment: Option<CommitmentLevel>,
+        callback: F,
+    ) -> AnyResult<()>
+    where
+        F: Fn(yellowstone_grpc_proto::geyser::SubscribeUpdate) + Send + Sync + 'static,
+    {
+        let transactions = self
+            .subscription_manager
+            .get_subscribe_request_filter(transaction_filter, None);
+        let accounts = self
+            .subscription_manager
+            .subscribe_with_account_request(account_filter, None);
+
+        let (mut subscribe_tx, mut stream, _) = self
+            .subscription_manager
+            .subscribe_with_request(transactions, accounts, commitment, None)
+            .await?;
+
+        let callback = Arc::new(callback);
+
+        tokio::spawn(async move {
+            while let Some(message) = stream.next().await {
+                match message {
+                    Ok(msg) => {
+                        match &msg.update_oneof {
+                            Some(UpdateOneof::Ping(_)) => {
+                                let _ = subscribe_tx
+                                    .send(SubscribeRequest {
+                                        ping: Some(SubscribeRequestPing { id: 1 }),
+                                        ..Default::default()
+                                    })
+                                    .await;
+                            }
+                            Some(UpdateOneof::Pong(_)) => {
+                                // Pong response, no action needed
+                            }
+                            _ => {
+                                // Pass raw update to callback
+                                callback(msg);
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        error!("Stream error: {error:?}");
+                        break;
+                    }
+                }
+            }
+        });
+        Ok(())
+    }
 }
 
 // 实现 Clone trait 以支持模块间共享

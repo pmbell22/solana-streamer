@@ -53,6 +53,7 @@ pub enum ParsedValue {
     Vec(Vec<ParsedValue>),
     Bytes(Vec<u8>),
     Struct(HashMap<String, ParsedValue>),
+    RoutePlan(Vec<crate::types::RoutePlanStep>),
     Unknown(Vec<u8>),
 }
 
@@ -93,6 +94,7 @@ impl std::fmt::Display for ParsedValue {
                 }
                 write!(f, "}}")
             }
+            ParsedValue::RoutePlan(steps) => write!(f, "{}", crate::types::format_route(steps)),
             ParsedValue::Unknown(v) => write!(f, "0x{}", hex::encode(v)),
         }
     }

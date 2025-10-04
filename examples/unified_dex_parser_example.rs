@@ -110,7 +110,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             println!("  (No parsed fields available)");
                         } else {
                             for (i, field) in event.instruction.data.fields.iter().enumerate() {
-                                println!("  {}. {}", i + 1, field);
+                                // Special handling for routePlan field
+                                if field.name == "routePlan" {
+                                    if let Some(dex_idl_parser::types::ParsedValue::RoutePlan(steps)) = &field.value {
+                                        println!("  {}. routePlan:", i + 1);
+                                        for (step_idx, step) in steps.iter().enumerate() {
+                                            println!("    Step {}:", step_idx);
+                                            println!("      swap: {:?}", step.swap);
+                                            println!("      percent: {}", step.percent);
+                                            println!("      inputIndex: {}", step.input_index);
+                                            println!("      outputIndex: {}", step.output_index);
+                                        }
+                                    } else {
+                                        println!("  {}. {}", i + 1, field);
+                                    }
+                                } else {
+                                    println!("  {}. {}", i + 1, field);
+                                }
                             }
                         }
 

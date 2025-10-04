@@ -131,8 +131,7 @@ impl InstructionParser {
     /// Deserialize Jupiter route plan
     fn deserialize_route_plan(cursor: &mut Cursor<&[u8]>) -> Result<ParsedValue> {
         let steps = Vec::<RoutePlanStep>::deserialize_reader(cursor)?;
-        let route_str = crate::types::format_route(&steps);
-        Ok(ParsedValue::String(route_str))
+        Ok(ParsedValue::RoutePlan(steps))
     }
 
     /// Deserialize a field value based on its IDL type

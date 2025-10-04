@@ -20,10 +20,92 @@ pub struct ParsedInstruction {
 /// Parsed instruction data
 #[derive(Debug, Clone)]
 pub struct ParsedInstructionData {
-    /// Field names from IDL
-    pub fields: Vec<String>,
+    /// Field names and types from IDL
+    pub fields: Vec<FieldInfo>,
     /// Raw instruction data (after discriminator)
     pub raw_data: Vec<u8>,
+}
+
+/// Information about a field
+#[derive(Debug, Clone)]
+pub struct FieldInfo {
+    pub name: String,
+    pub type_name: String,
+    pub value: Option<ParsedValue>,
+}
+
+/// Represents a parsed value from instruction data
+#[derive(Debug, Clone)]
+pub enum ParsedValue {
+    U8(u8),
+    U16(u16),
+    U32(u32),
+    U64(u64),
+    U128(u128),
+    I8(i8),
+    I16(i16),
+    I32(i32),
+    I64(i64),
+    I128(i128),
+    Bool(bool),
+    String(String),
+    Pubkey(Pubkey),
+    Vec(Vec<ParsedValue>),
+    Bytes(Vec<u8>),
+    Struct(HashMap<String, ParsedValue>),
+    Unknown(Vec<u8>),
+}
+
+impl std::fmt::Display for ParsedValue {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ParsedValue::U8(v) => write!(f, "{}", v),
+            ParsedValue::U16(v) => write!(f, "{}", v),
+            ParsedValue::U32(v) => write!(f, "{}", v),
+            ParsedValue::U64(v) => write!(f, "{}", v),
+            ParsedValue::U128(v) => write!(f, "{}", v),
+            ParsedValue::I8(v) => write!(f, "{}", v),
+            ParsedValue::I16(v) => write!(f, "{}", v),
+            ParsedValue::I32(v) => write!(f, "{}", v),
+            ParsedValue::I64(v) => write!(f, "{}", v),
+            ParsedValue::I128(v) => write!(f, "{}", v),
+            ParsedValue::Bool(v) => write!(f, "{}", v),
+            ParsedValue::String(v) => write!(f, "\"{}\"", v),
+            ParsedValue::Pubkey(v) => write!(f, "{}", v),
+            ParsedValue::Vec(v) => {
+                write!(f, "[")?;
+                for (i, val) in v.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", val)?;
+                }
+                write!(f, "]")
+            }
+            ParsedValue::Bytes(v) => write!(f, "0x{}", hex::encode(v)),
+            ParsedValue::Struct(fields) => {
+                write!(f, "{{")?;
+                for (i, (name, val)) in fields.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}: {}", name, val)?;
+                }
+                write!(f, "}}")
+            }
+            ParsedValue::Unknown(v) => write!(f, "0x{}", hex::encode(v)),
+        }
+    }
+}
+
+impl std::fmt::Display for FieldInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(value) = &self.value {
+            write!(f, "{}: {} = {}", self.name, self.type_name, value)
+        } else {
+            write!(f, "{}: {}", self.name, self.type_name)
+        }
+    }
 }
 
 /// Unified DEX event that can be streamed via Yellowstone gRPC

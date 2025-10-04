@@ -1,8 +1,10 @@
-use crate::idl::{Idl, IdlInstruction, InstructionDiscriminators};
-use crate::types::{ParsedInstruction, ParsedInstructionData};
+use crate::idl::{Idl, IdlInstruction, IdlType, InstructionDiscriminators};
+use crate::types::{FieldInfo, ParsedInstruction, ParsedInstructionData, ParsedValue, RoutePlanStep};
 use anyhow::{anyhow, Result};
+use borsh::BorshDeserialize;
 use solana_sdk::pubkey::Pubkey;
 use std::collections::HashMap;
+use std::io::Cursor;
 
 /// Instruction parser that uses IDL to parse transaction instructions
 pub struct InstructionParser {
@@ -96,25 +98,119 @@ impl InstructionParser {
     }
 
     /// Parse instruction arguments
-    /// Note: This is a simplified implementation. For production, you'd want
-    /// proper borsh deserialization based on the IDL type definitions
     fn parse_args(
         &self,
         instruction_def: &IdlInstruction,
         data: &[u8],
     ) -> Result<ParsedInstructionData> {
-        // For now, return raw data and field names
-        // In a full implementation, you would deserialize based on the IDL types
-        let field_names: Vec<String> = instruction_def
-            .args
-            .iter()
-            .map(|arg| arg.name.clone())
-            .collect();
+        let mut cursor = Cursor::new(data);
+        let mut field_infos = Vec::new();
+
+        // Try to deserialize each field
+        for arg in &instruction_def.args {
+            // Special handling for Jupiter routePlan
+            let value = if arg.name == "routePlan" {
+                Self::deserialize_route_plan(&mut cursor).ok()
+            } else {
+                Self::deserialize_field(&arg.ty, &mut cursor).ok()
+            };
+
+            field_infos.push(FieldInfo {
+                name: arg.name.clone(),
+                type_name: Self::format_idl_type(&arg.ty),
+                value,
+            });
+        }
 
         Ok(ParsedInstructionData {
-            fields: field_names,
+            fields: field_infos,
             raw_data: data.to_vec(),
         })
+    }
+
+    /// Deserialize Jupiter route plan
+    fn deserialize_route_plan(cursor: &mut Cursor<&[u8]>) -> Result<ParsedValue> {
+        let steps = Vec::<RoutePlanStep>::deserialize_reader(cursor)?;
+        let route_str = crate::types::format_route(&steps);
+        Ok(ParsedValue::String(route_str))
+    }
+
+    /// Deserialize a field value based on its IDL type
+    fn deserialize_field(ty: &IdlType, cursor: &mut Cursor<&[u8]>) -> Result<ParsedValue> {
+        match ty {
+            IdlType::Simple(type_name) => match type_name.as_str() {
+                "u8" => Ok(ParsedValue::U8(u8::deserialize_reader(cursor)?)),
+                "u16" => Ok(ParsedValue::U16(u16::deserialize_reader(cursor)?)),
+                "u32" => Ok(ParsedValue::U32(u32::deserialize_reader(cursor)?)),
+                "u64" => Ok(ParsedValue::U64(u64::deserialize_reader(cursor)?)),
+                "u128" => Ok(ParsedValue::U128(u128::deserialize_reader(cursor)?)),
+                "i8" => Ok(ParsedValue::I8(i8::deserialize_reader(cursor)?)),
+                "i16" => Ok(ParsedValue::I16(i16::deserialize_reader(cursor)?)),
+                "i32" => Ok(ParsedValue::I32(i32::deserialize_reader(cursor)?)),
+                "i64" => Ok(ParsedValue::I64(i64::deserialize_reader(cursor)?)),
+                "i128" => Ok(ParsedValue::I128(i128::deserialize_reader(cursor)?)),
+                "bool" => Ok(ParsedValue::Bool(bool::deserialize_reader(cursor)?)),
+                "publicKey" | "pubkey" => {
+                    let bytes = <[u8; 32]>::deserialize_reader(cursor)?;
+                    Ok(ParsedValue::Pubkey(Pubkey::from(bytes)))
+                }
+                "string" => Ok(ParsedValue::String(String::deserialize_reader(cursor)?)),
+                "bytes" => {
+                    let bytes = Vec::<u8>::deserialize_reader(cursor)?;
+                    Ok(ParsedValue::Bytes(bytes))
+                }
+                _ => {
+                    // Unknown type, read remaining bytes
+                    let pos = cursor.position() as usize;
+                    let remaining = &cursor.get_ref()[pos..];
+                    Ok(ParsedValue::Unknown(remaining.to_vec()))
+                }
+            },
+            IdlType::Vec { vec } => {
+                let len = u32::deserialize_reader(cursor)? as usize;
+                let mut values = Vec::new();
+                for _ in 0..len {
+                    values.push(Self::deserialize_field(vec, cursor)?);
+                }
+                Ok(ParsedValue::Vec(values))
+            }
+            IdlType::Option { option } => {
+                let is_some = u8::deserialize_reader(cursor)? != 0;
+                if is_some {
+                    Self::deserialize_field(option, cursor)
+                } else {
+                    Ok(ParsedValue::Unknown(vec![]))
+                }
+            }
+            IdlType::Array { array } => {
+                let mut values = Vec::new();
+                for _ in 0..array.1 {
+                    values.push(Self::deserialize_field(&array.0, cursor)?);
+                }
+                Ok(ParsedValue::Vec(values))
+            }
+            IdlType::DefinedSimple { .. } | IdlType::DefinedComplex { .. } => {
+                // For complex/defined types, we'd need the type definition from IDL
+                // For now, treat as unknown and capture remaining bytes
+                let pos = cursor.position() as usize;
+                let remaining = &cursor.get_ref()[pos..];
+                Ok(ParsedValue::Unknown(remaining.to_vec()))
+            }
+        }
+    }
+
+    /// Format an IDL type as a readable string
+    fn format_idl_type(ty: &IdlType) -> String {
+        match ty {
+            IdlType::Simple(s) => s.clone(),
+            IdlType::Vec { vec } => format!("Vec<{}>", Self::format_idl_type(vec)),
+            IdlType::Option { option } => format!("Option<{}>", Self::format_idl_type(option)),
+            IdlType::Array { array } => {
+                format!("[{}; {}]", Self::format_idl_type(&array.0), array.1)
+            }
+            IdlType::DefinedSimple { defined } => defined.clone(),
+            IdlType::DefinedComplex { defined } => defined.name.clone(),
+        }
     }
 
     /// Get instruction definition by name

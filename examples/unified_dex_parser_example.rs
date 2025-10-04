@@ -79,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         println!("Protocol:     {}", event.protocol.name());
                         println!("Program:      {}", event.program_name());
                         println!("Instruction:  {}", event.instruction_name());
-                        println!("Signature:    {}...", &event.signature[0..16]);
+                        println!("Signature:    {}", event.signature);
                         println!("Slot:         {}", event.slot);
                         println!("Block Time:   {}", event.block_time);
 
@@ -99,19 +99,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
 
                         // Print accounts
-                        println!("\nAccounts:");
+                        println!("\n📋 Accounts:");
                         for (name, pubkey) in &event.instruction.accounts {
-                            println!("  {}: {}", name, pubkey);
+                            println!("  • {:<30} {}", name, pubkey);
                         }
 
                         // Print instruction data fields
-                        println!("\nInstruction Data Fields:");
-                        for field in &event.instruction.data.fields {
-                            println!("  - {}", field);
+                        println!("\n📊 Instruction Data Fields:");
+                        if event.instruction.data.fields.is_empty() {
+                            println!("  (No parsed fields available)");
+                        } else {
+                            for (i, field) in event.instruction.data.fields.iter().enumerate() {
+                                println!("  {}. {}", i + 1, field);
+                            }
                         }
 
-                        println!("Raw Data (hex): {}", hex::encode(&event.instruction.data.raw_data));
-                        println!("Discriminator:  {}", hex::encode(&event.instruction.raw_discriminator));
+                        println!("\n🔢 Raw Data:");
+                        println!("  Discriminator: {}", hex::encode(&event.instruction.raw_discriminator));
+                        println!("  Data (hex):    {}", hex::encode(&event.instruction.data.raw_data));
                         println!("═══════════════════════════════════════════════════════");
                         println!();
                     }

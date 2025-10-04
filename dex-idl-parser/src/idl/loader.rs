@@ -116,4 +116,13 @@ mod tests {
         assert_eq!(idl.name, "whirlpool");
         assert!(!idl.instructions.is_empty());
     }
+
+    #[test]
+    fn test_load_meteora_idl() {
+        let idl = load_idl_from_file("dex-idl-parser/idls/meteora.json");
+        assert!(idl.is_ok());
+        let idl = idl.unwrap();
+        assert_eq!(idl.name, "meteora");
+        assert!(!idl.instructions.is_empty());
+    }
 }
